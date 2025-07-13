@@ -63,11 +63,24 @@ class Model_log_quotes extends CI_Model
 		return $query->result_array();
 	}
 	
-	public function getLogQuotesDataCount($prd_id,$procura = '') {
-		$sql = "SELECT count(*) as qtd FROM log_quotes WHERE product_id=? ".$procura;
-		$query = $this->db->query($sql, array($prd_id));
-		$row = $query->row_array();
-		return $row['qtd'];
-	}
+        public function getLogQuotesDataCount($prd_id,$procura = '') {
+                $sql = "SELECT count(*) as qtd FROM log_quotes WHERE product_id=? ".$procura;
+                $query = $this->db->query($sql, array($prd_id));
+                $row = $query->row_array();
+                return $row['qtd'];
+        }
+
+        public function getQuoteByMarketplaceNumber($marketplaceNumber, $int_to)
+        {
+                $this->db->where('quote_id', $marketplaceNumber);
+                $this->db->where('integration', $int_to);
+                $this->db->order_by('created_at', 'DESC');
+                $query = $this->db->get('log_quotes');
+                $row = $query->row_array();
+                if ($row && !isset($row['is_multiseller'])) {
+                        $row['is_multiseller'] = 0;
+                }
+                return $row;
+        }
 
 }
