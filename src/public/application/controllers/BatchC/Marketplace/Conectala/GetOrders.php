@@ -27,6 +27,7 @@ require APPPATH . "controllers/BatchC/Marketplace/Conectala/Integration.php";
  * @property Model_orders_item $model_orders_item
  * @property Model_settings $model_settings
  * @property Model_quotes_ship $model_quotes_ship
+ * @property Model_log_quotes $model_log_quotes
  * @property OrdersMarketplace $ordersmarketplace
  * @property CalculoFrete $calculofrete
  */
@@ -78,7 +79,8 @@ class GetOrders extends BatchBackground_Controller
         $this->load->model('model_orders_item');
         $this->load->model('model_settings');
         $this->load->model('model_quotes_ship');
-		$this->load->library('ordersMarketplace');
+        $this->load->model('model_log_quotes');
+                $this->load->library('ordersMarketplace');
         $this->load->library('calculoFrete');
 
 		$this->integration = new Integration();
@@ -1166,7 +1168,7 @@ class GetOrders extends BatchBackground_Controller
         return null;
     }
     /**
-    * Recupera cotação multiseller do log_quote
+    * Recupera cotação multiseller do log_quotes
     * @param string $marketplaceNumber
     * @return array|null
     */
@@ -1175,8 +1177,8 @@ class GetOrders extends BatchBackground_Controller
         $log_name = __CLASS__ . '/' . __FUNCTION__;
         
         try {
-            // Buscar cotação no log_quote
-            $quoteData = $this->model_quotes_ship->getQuoteByMarketplaceNumber($marketplaceNumber, $this->int_to);
+            // Buscar cotação no log_quotes
+            $quoteData = $this->model_log_quotes->getQuoteByMarketplaceNumber($marketplaceNumber, $this->int_to);
             
             if (!$quoteData) {
                 $this->log_data('batch', $log_name, 
