@@ -88,8 +88,12 @@ class Model_quotes_ship extends CI_Model
 	public function getQuoteByMarketplaceNumber($marketplaceNumber, $int_to) {
 		$this->db->where('marketplace_number', $marketplaceNumber);
 		$this->db->where('integration', $int_to);
-		$this->db->order_by('created_at', 'DESC');
-		$query = $this->db->get('log_quote');
-		return $query->row_array();
+                $this->db->order_by('created_at', 'DESC');
+                $query = $this->db->get('log_quote');
+                $row = $query->row_array();
+                if ($row && !isset($row['is_multiseller'])) {
+                        $row['is_multiseller'] = 0;
+                }
+                return $row;
 	}
 }
