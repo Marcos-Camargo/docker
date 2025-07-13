@@ -4,11 +4,24 @@ This repository contains a container setup for the application.
 
 ## Configuration
 
-* `multiseller_freight_results` – JSON defining the marketplace shipping method names. The setting is inactive by default.
+The application reads several settings from the `settings` table. They can be
+edited through the administration panel or inserted manually during setup.
+
+* `enable_multiseller_operation` – allows a single order to contain products
+  from more than one store. When inactive, mixed orders are canceled.
+* `marketplace_multiseller_operation` – comma‑separated list of marketplace
+  identifiers (`int_to`) that support sharing the same order between stores.
+  This list only has effect when `enable_multiseller_operation` is active.
+* `multiseller_freight_results` – JSON with the shipping method names used when
+  a quote involves multiple sellers. The setting is inactive by default.
   Example value:
   ```json
   {"lowest_price": "Normal", "lowest_deadline": "Expressa"}
   ```
+
+When `multiseller_freight_results` is enabled the quote response is modified so
+that the cheapest option uses the name from `lowest_price` and the fastest uses
+the name from `lowest_deadline`.
 
 ## Manual Testing
 
