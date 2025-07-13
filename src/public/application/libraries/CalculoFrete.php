@@ -3602,7 +3602,11 @@ class CalculoFrete {
      */
     private function extractSellerFromSku(string $sku): string
     {
-        // Código do método...
+        if (preg_match('/S(\d+)/', $sku, $matches)) {
+            return $matches[1];
+        }
+
+        return '';
     }
         /**
      * Verifica se execução paralela está disponível
