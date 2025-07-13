@@ -63,7 +63,7 @@ class CalculoFrete {
      * Flag de padronização de métodos de envio
      * @var bool
      */
-    private bool $marketplace_replace_shipping_method = false;
+    private bool $multiseller_freight_results = false;
     /**
      * Configuração de padronização de métodos de envio
      * @var array|null
@@ -1588,9 +1588,9 @@ class CalculoFrete {
             }
 
             if (!empty($this->logistic) && $this->logistic->has_multiseller) {
-                $setting_marketplace_replace_shipping_method = $this->getSettingRedis($this->instance->redis, 'marketplace_replace_shipping_method');
-                if ($setting_marketplace_replace_shipping_method && $setting_marketplace_replace_shipping_method['status'] == 1) {
-                    $this->setMarketplaceReplaceShippingMethod($quoteResponse, $setting_marketplace_replace_shipping_method['value']);
+                $setting_multiseller_freight_results = $this->getSettingRedis($this->instance->redis, 'multiseller_freight_results');
+                if ($setting_multiseller_freight_results && $setting_multiseller_freight_results['status'] == 1) {
+                    $this->setMarketplaceReplaceShippingMethod($quoteResponse, $setting_multiseller_freight_results['value']);
                 }
             }
         }
@@ -1614,15 +1614,15 @@ class CalculoFrete {
         return $quoteResponse;
     }
 
-    private function setMarketplaceReplaceShippingMethod(&$quoteResponse, $marketplace_replace_shipping_method, &$orignal_services = array())
+    private function setMarketplaceReplaceShippingMethod(&$quoteResponse, $multiseller_freight_results, &$orignal_services = array())
     {
-        $marketplace_replace_shipping_method = json_decode($marketplace_replace_shipping_method, true);
-        if (empty($marketplace_replace_shipping_method)) {
+        $multiseller_freight_results = json_decode($multiseller_freight_results, true);
+        if (empty($multiseller_freight_results)) {
             return;
         }
 
-        $lowest_price    = $marketplace_replace_shipping_method['lowest_price'];
-        $lowest_deadline = $marketplace_replace_shipping_method['lowest_deadline'];
+        $lowest_price    = $multiseller_freight_results['lowest_price'];
+        $lowest_deadline = $multiseller_freight_results['lowest_deadline'];
 
         $sku_services = array();
 
@@ -2177,10 +2177,10 @@ class CalculoFrete {
             if (!empty($quoteResponse['data']['services'])) {
                 $price    = null;
                 $deadline = null;
-                $setting_marketplace_replace_shipping_method = $this->getSettingRedis($this->instance->redis, 'marketplace_replace_shipping_method');
+                $setting_multiseller_freight_results = $this->getSettingRedis($this->instance->redis, 'multiseller_freight_results');
 
                 $orignal_services = array();
-                $this->setMarketplaceReplaceShippingMethod($quoteResponse, $setting_marketplace_replace_shipping_method['value'], $orignal_services);
+                $this->setMarketplaceReplaceShippingMethod($quoteResponse, $setting_multiseller_freight_results['value'], $orignal_services);
 
                 $shipping_method = current($orignal_services)[0]['method'] ?? null;
 
