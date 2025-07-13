@@ -89,6 +89,7 @@ class Model_quotes_ship extends CI_Model
                 $this->db->where('quote_id', $marketplaceNumber);
                 $this->db->where('integration', $int_to);
                 $this->db->order_by('created_at', 'DESC');
+                // read latest quote from log table
                 $query = $this->db->get('log_quotes');
                 $row = $query->row_array();
                 if ($row && !isset($row['is_multiseller'])) {
