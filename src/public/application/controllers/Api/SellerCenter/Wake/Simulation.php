@@ -252,6 +252,8 @@ class Simulation extends FreteConectala {
                 }
                 
                 if ($this->enable_log_quotes && isset($quote['data']['skus'])) {
+                    $stores = array_column($data_to_product_id, 'store_id');
+                    $isMultiseller = count(array_unique($stores)) > 1 ? 1 : 0;
                     foreach ($data_to_product_id as $product_id => $products) {
                         $this->db->insert('log_quotes', array(
                             'quote_id'                  => $quote_id ?? '',
@@ -261,6 +263,7 @@ class Simulation extends FreteConectala {
                             'skumkt'                    => $products['skumkt'],
                             'store_id'                  => $products['store_id'],
                             'seller_id'                 => $products['seller_id'],
+                            'is_multiseller'            => $isMultiseller,
                             'integration'               => isset($quote['data']['logistic']['type']) ? ($quote['data']['logistic']['type'] === false ? 'internal_table' : $quote['data']['logistic']['type']) : null,
                             'success'                   => $products['success'],
                             'contingency'               => $products['shipping_company'],

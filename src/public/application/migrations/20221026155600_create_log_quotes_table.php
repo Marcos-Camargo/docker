@@ -49,6 +49,12 @@ return new class extends CI_Migration
                 'constraint' => ('16'),
                 'null' => FALSE
             ),
+            'is_multiseller' => array(
+                'type' => 'TINYINT',
+                'constraint' => ('1'),
+                'null' => FALSE,
+                'default' => 0
+            ),
             'integration' => array(
                 'type' => 'VARCHAR',
                 'constraint' => ('32'),
