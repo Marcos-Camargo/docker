@@ -1188,6 +1188,9 @@ class CalculoFrete {
             }
         }
 
+        // Persistir flag para uso posterior
+        $this->enable_multiseller_operation = $enable_multiseller_operation;
+
         $this->setFieldSKUQuote($platform);
 
         // Se não passar zipcode, não precisa validar.
@@ -1399,7 +1402,7 @@ class CalculoFrete {
 
                 try {
                     $this->instanceLogistic('TableInternal', $storeId, $dataQuote, $logistic['seller']);
-                    $quoteResponse = $this->logistic->getQuote($dataQuote, false, $enable_multiseller_operation);
+                    $quoteResponse = $this->logistic->getQuote($dataQuote, false, $this->enable_multiseller_operation);
                 } catch (InvalidArgumentException $exception) {
                     $quoteResponse = array(
                         'success' => false,
@@ -2173,7 +2176,7 @@ class CalculoFrete {
         //Verificar pelo número da cotação, valor pago e sla.
         $selectedQuote = array();
 
-        if ($enable_multiseller_operation) {
+        if ($this->enable_multiseller_operation) {
             if (!empty($quoteResponse['data']['services'])) {
                 $price    = null;
                 $deadline = null;
