@@ -1591,9 +1591,9 @@ class CalculoFrete {
             }
 
             if (!empty($this->logistic) && $this->logistic->has_multiseller) {
-                $setting_multiseller_freight_results = $this->getSettingRedis($this->instance->redis, 'multiseller_freight_results');
-                if ($setting_multiseller_freight_results && $setting_multiseller_freight_results['status'] == 1) {
-                    $this->setMarketplaceReplaceShippingMethod($quoteResponse, $setting_multiseller_freight_results['value']);
+                $this->loadFreightStandardizationConfig();
+                if ($this->multiseller_freight_results) {
+                    $this->setMarketplaceReplaceShippingMethod($quoteResponse);
                 }
             }
         }
@@ -1617,15 +1617,16 @@ class CalculoFrete {
         return $quoteResponse;
     }
 
-    private function setMarketplaceReplaceShippingMethod(&$quoteResponse, $multiseller_freight_results, &$orignal_services = array())
+    private function setMarketplaceReplaceShippingMethod(&$quoteResponse, &$orignal_services = array())
     {
-        $multiseller_freight_results = json_decode($multiseller_freight_results, true);
-        if (empty($multiseller_freight_results)) {
+        $this->loadFreightStandardizationConfig();
+
+        if (!$this->multiseller_freight_results || empty($this->marketplace_shipping_standardization_config)) {
             return;
         }
 
-        $lowest_price    = $multiseller_freight_results['lowest_price'];
-        $lowest_deadline = $multiseller_freight_results['lowest_deadline'];
+        $lowest_price    = $this->marketplace_shipping_standardization_config['lowest_price'];
+        $lowest_deadline = $this->marketplace_shipping_standardization_config['lowest_deadline'];
 
         $sku_services = array();
 
@@ -2180,10 +2181,10 @@ class CalculoFrete {
             if (!empty($quoteResponse['data']['services'])) {
                 $price    = null;
                 $deadline = null;
-                $setting_multiseller_freight_results = $this->getSettingRedis($this->instance->redis, 'multiseller_freight_results');
+                $this->loadFreightStandardizationConfig();
 
                 $orignal_services = array();
-                $this->setMarketplaceReplaceShippingMethod($quoteResponse, $setting_multiseller_freight_results['value'], $orignal_services);
+                $this->setMarketplaceReplaceShippingMethod($quoteResponse, $orignal_services);
 
                 $shipping_method = current($orignal_services)[0]['method'] ?? null;
 
@@ -3482,6 +3483,35 @@ class CalculoFrete {
         }
         
         $this->multiseller_initialized = true;
+    }
+
+    /**
+     * Carrega configuracao de padronizacao de metodos de envio.
+     *
+     * Consulta primeiro no Redis e depois no banco de dados a configuracao
+     * `multiseller_freight_results`. O resultado e armazenado nas propriedades
+     * `$multiseller_freight_results` e `$marketplace_shipping_standardization_config`.
+     *
+     * @return void
+     */
+    private function loadFreightStandardizationConfig(): void
+    {
+        if ($this->marketplace_shipping_standardization_config !== null) {
+            return; // ja carregado
+        }
+
+        $setting = $this->getSettingRedis($this->instance->redis, 'multiseller_freight_results');
+
+        $this->multiseller_freight_results = false;
+        $this->marketplace_shipping_standardization_config = null;
+
+        if ($setting && isset($setting['status']) && $setting['status'] == 1) {
+            $config = json_decode($setting['value'], true);
+            if (is_array($config)) {
+                $this->multiseller_freight_results = true;
+                $this->marketplace_shipping_standardization_config = $config;
+            }
+        }
     }
     
         /**
