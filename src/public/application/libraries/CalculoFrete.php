@@ -1097,6 +1097,7 @@ class CalculoFrete {
      */
     public function formatQuote(array $mkt, array $items, string $zipcode = null, bool $checkStock = true, bool $groupServices = true): array
     {
+        $this->initializeMultisellerIfNeeded();
         $this->_time_start_query_sku = 0;
         $this->_time_end_query_sku = 0;
         $this->_time_start_integration = 0;
@@ -1176,20 +1177,6 @@ class CalculoFrete {
             } catch (RedisException $exception) {}
             $this->_time_end_redis = $this->_time_start_redis = 0;
         }
-
-        $enable_multiseller_operation = false;
-        if ($this->readonlydb->get_where('settings', array('name' => 'enable_multiseller_operation', 'status' => 1))->row_array()) {
-            $setting_marketplace_multiseller_operation = $this->readonlydb->get_where('settings', array('name' => 'marketplace_multiseller_operation', 'status' => 1))->row_array();
-            if ($setting_marketplace_multiseller_operation) {
-                $marketplace_multiseller_operation = explode(',', $setting_marketplace_multiseller_operation['value']);
-                if (in_array($channel, $marketplace_multiseller_operation)) {
-                    $enable_multiseller_operation = true;
-                }
-            }
-        }
-
-        // Persistir flag para uso posterior
-        $this->enable_multiseller_operation = $enable_multiseller_operation;
 
         $this->setFieldSKUQuote($platform);
 
@@ -2073,21 +2060,12 @@ class CalculoFrete {
 
     public function getShipCompanyPreviewToCreateOrder(int $store_id, string $int_to, array $items, string $zipcode, string $ship_service_preview)
     {
+        $this->initializeMultisellerIfNeeded();
         $store = $this->instance->db->get_where('stores', array('id' => $store_id))->row_array();
         if (!$store) {
             return [];
         }
 
-        $enable_multiseller_operation = false;
-        if ($this->instance->db->get_where('settings', array('name' => 'enable_multiseller_operation', 'status' => 1))->row_array()) {
-            $setting_marketplace_multiseller_operation = $this->instance->db->get_where('settings', array('name' => 'marketplace_multiseller_operation', 'status' => 1))->row_array();
-            if ($setting_marketplace_multiseller_operation) {
-                $marketplace_multiseller_operation = explode(',', $setting_marketplace_multiseller_operation['value']);
-                if (in_array($int_to, $marketplace_multiseller_operation)) {
-                    $enable_multiseller_operation = true;
-                }
-            }
-        }
 
         $logistic = $this->getLogisticStore(array(
             'freight_seller' 		=> $store['freight_seller'],
