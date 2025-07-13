@@ -1246,7 +1246,7 @@ class CalculoFrete {
         // === ORQUESTRADOR MULTISELLER COM FEATURE FLAGS ===
 
         // Verificar se multiseller está habilitado via feature feature-OEP-1921-multiseller-quote
-        $multisellerEnabled = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results');
+        $multisellerEnabled = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results');
 
         if ($multisellerEnabled && $this->enable_multiseller_operation) {
             // Executar análise multiseller otimizada
@@ -1257,7 +1257,7 @@ class CalculoFrete {
                     "Executando cotação multiseller - " . $multisellerAnalysis['total_sellers'] . " sellers detectados", "I");
                 
                 // Verificar feature flag para cotação paralela feature-OEP-1921-parallel-quotefeature-OEP-1921-parallel-quote
-                if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
+                if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
                     try {
                         $parallelResult = $this->executeParallelMultisellerQuote(
                             $mkt, 
@@ -2996,7 +2996,7 @@ class CalculoFrete {
                 
                 // Verificar feature flag
                 if ($enable_multiseller && class_exists('\App\Libraries\FeatureFlag\FeatureManager')) {
-                    $enable_multiseller = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results');
+                    $enable_multiseller = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results');
                 }
                 
                 if (!$enable_multiseller) {
@@ -3419,7 +3419,7 @@ class CalculoFrete {
     public function setEnableMultisellerOperation(bool $enabled): self
     {
         // Verificar feature flag antes de permitir ativação
-        if ($enabled && !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) { 
+        if ($enabled && !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) { 
             $this->enable_multiseller_operation = false;
             $this->multiseller_initialized = true;
             return $this;
@@ -3460,7 +3460,7 @@ class CalculoFrete {
         
         // Verificar feature flag
        
-        if ( !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
+        if ( !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
             $this->enable_multiseller_operation = false;
             $this->multiseller_initialized = true;
             return;
@@ -3497,7 +3497,7 @@ class CalculoFrete {
     {
         // Verificar feature flag primeiro
         
-        if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
+        if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
             return false;
         }
         
@@ -3622,7 +3622,7 @@ class CalculoFrete {
     {
         try {
             // Verificar se feature flag de paralelismo está habilitada
-            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
+            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
                 return false;
             }
             
