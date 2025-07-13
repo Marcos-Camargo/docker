@@ -81,6 +81,12 @@ class CalculoFrete {
      */
     private bool $multiseller_initialized = false;
 
+    /**
+     * Parâmetros extras para operação multiseller
+     * @var array
+     */
+    private array $multiseller_params = [];
+
     private $validationResult = null;
 
     public function __construct()
@@ -3421,6 +3427,18 @@ class CalculoFrete {
         
         return $this;
     }
+
+    /**
+     * Define parametros adicionais da operacao multiseller
+     *
+     * @param array $params
+     * @return self
+     */
+    public function setMultisellerParams(array $params): self
+    {
+        $this->multiseller_params = $params;
+        return $this;
+    }
     
     /**
      * Inicializa configurações multiseller se necessário
@@ -4163,6 +4181,12 @@ class CalculoFrete {
             
             $allShippingMethods = [];
             $allSuccessful = true;
+
+            // Regra de agregacao
+            $rule = $this->multiseller_params['rule'] ?? 'menor_preco';
+            error_log("aggregateMultisellerResults: regra utilizada - {$rule}");
+
+            $chosenMethod = null;
             
             // Processar resultados de cada seller
             foreach ($results as $seller => $result) {
@@ -4220,13 +4244,30 @@ class CalculoFrete {
             
             // Finalizar métodos de envio agregados
             foreach ($allShippingMethods as $methodKey => $method) {
-                $aggregatedData['shipping_methods'][] = [
+                $methodData = [
                     'name' => $method['name'],
                     'total_price' => round($method['total_price'], 2),
                     'max_deadline' => $method['max_deadline'],
                     'seller_count' => count($method['sellers']),
                     'sellers' => $method['sellers']
                 ];
+
+                $aggregatedData['shipping_methods'][] = $methodData;
+
+                if ($rule === 'menor_preco') {
+                    if ($chosenMethod === null || $methodData['total_price'] < $chosenMethod['total_price']) {
+                        $chosenMethod = $methodData;
+                    }
+                } else { // menor_prazo
+                    if ($chosenMethod === null || $methodData['max_deadline'] < $chosenMethod['max_deadline']) {
+                        $chosenMethod = $methodData;
+                    }
+                }
+            }
+
+            if ($chosenMethod !== null) {
+                $aggregatedData['chosen_shipping'] = $chosenMethod;
+                error_log("aggregateMultisellerResults: metodo escolhido - {$chosenMethod['name']} preco {$chosenMethod['total_price']} prazo {$chosenMethod['max_deadline']}");
             }
             
             // Determinar sucesso geral
