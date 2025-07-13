@@ -3814,11 +3814,9 @@ class CalculoFrete {
         try {
             
             $promises = [];
-            $sellerIds = [];
-            $timeoutPromises = [];
             
             // Criar promises para cada seller
-           foreach ($sellerGroups as $seller => $sellerItems) {
+            foreach ($sellerGroups as $seller => $sellerItems) {
                 try {
                     // Preparar dados da cotação com argumentos corretos
                 
@@ -3839,7 +3837,7 @@ class CalculoFrete {
                     
                     // Verificar se é Promise ou resultado direto
                     if ($asyncResult instanceof PromiseInterface) {
-                        $promises[] = $asyncResult->then(
+                        $promises[$seller] = $asyncResult->then(
                             function ($result) use ($seller, $dataQuote) {
                                 return [
                                     'seller' => $seller,
@@ -3858,7 +3856,7 @@ class CalculoFrete {
                         );
                     } else {
                         // Resultado síncrono - converter para Promise
-                        $promises[] = Create::promiseFor([
+                        $promises[$seller] = Create::promiseFor([
                             'seller' => $seller,
                             'store_id' => $dataQuote['store_id'],
                             'result' => $asyncResult,
@@ -3877,25 +3875,26 @@ class CalculoFrete {
                 }
             }
             
-            // Aguardar todas as promises
-            $results = \GuzzleHttp\Promise\settle($promises)->wait();
-            
-            // Processar resultados
             $processedResults = [];
-            foreach ($results as $index => $result) {
-                $seller = $sellerIds[$index];
-                
-                if ($result['state'] === 'fulfilled') {
-                    $processedResults[$seller] = $result['value'];
-                } else {
-                    // Promise rejeitada
-                    error_log("CalculoFrete: Promise rejeitada para seller {$seller}");
-                    $processedResults[$seller] = [
+            foreach ($promises as $sellerKey => $promise) {
+                try {
+                    $result = $this->waitPromiseWithTimeout($promise, rand(10, 15));
+
+                    if (empty($result['result']['data']['shipping_methods'] ?? [])) {
+                        throw new Exception('Nenhum frete retornado');
+                    }
+
+                    $processedResults[$sellerKey] = $result;
+                } catch (Exception $e) {
+                    error_log("CalculoFrete: Timeout ou erro na promise do seller {$sellerKey}: " . $e->getMessage());
+
+                    return [
                         'success' => false,
                         'data' => [
-                            'message' => 'Falha na execução paralela do seller ' . $seller,
-                            'seller_id' => $seller,
-                            'seller_execution_mode' => 'parallel_rejected'
+                            'message' => 'Falha na execução paralela do seller ' . $sellerKey,
+                            'seller_id' => $sellerKey,
+                            'execution_mode' => 'parallel_timeout',
+                            'error' => $e->getMessage()
                         ]
                     ];
                 }
@@ -4260,9 +4259,40 @@ class CalculoFrete {
         }
     }
 
+    private function waitPromiseWithTimeout(PromiseInterface $promise, int $seconds)
+    {
+        if (function_exists('GuzzleHttp\\Promise\\timeout')) {
+            return \GuzzleHttp\Promise\timeout($promise, $seconds)->wait();
+        }
+
+        if (!function_exists('pcntl_alarm')) {
+            return $promise->wait();
+        }
+
+        pcntl_async_signals(true);
+        $timedOut = false;
+        pcntl_signal(SIGALRM, function () use (&$timedOut) {
+            $timedOut = true;
+            throw new \RuntimeException('Promise timeout');
+        });
+        pcntl_alarm($seconds);
+
+        try {
+            $result = $promise->wait();
+            pcntl_alarm(0);
+            return $result;
+        } catch (\Throwable $e) {
+            pcntl_alarm(0);
+            if ($timedOut) {
+                throw new \RuntimeException('Promise timeout');
+            }
+            throw $e;
+        }
+    }
+
     /**
      * Valida e corrige configuração logística
-     * 
+     *
      * @param array $logisticConfig Configuração logística
      * @param string $sellerId ID do seller
      * @return array Configuração validada
