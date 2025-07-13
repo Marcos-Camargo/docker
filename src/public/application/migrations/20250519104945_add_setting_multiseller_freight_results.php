@@ -4,9 +4,9 @@ return new class extends CI_Migration
 {
 
 	public function up() {
-        if ($this->db->where('name', 'marketplace_replace_shipping_method')->get('settings')->num_rows() === 0) {
+        if ($this->db->where('name', 'multiseller_freight_results')->get('settings')->num_rows() === 0) {
             $this->db->insert('settings', array(
-                'name' => "marketplace_replace_shipping_method",
+                'name' => "multiseller_freight_results",
                 'value' => '{"lowest_price":"Normal","lowest_deadline":"Expressa"}',
                 'status' => 2,
                 'user_id' => 1,
@@ -18,6 +18,6 @@ return new class extends CI_Migration
     }
 
 	public function down()	{
-        $this->db->where('name', 'marketplace_replace_shipping_method')->delete('settings');
+        $this->db->where('name', 'multiseller_freight_results')->delete('settings');
 	}
 };
