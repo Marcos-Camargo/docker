@@ -4162,7 +4162,7 @@ class CalculoFrete {
             ];
             
             $allShippingMethods = [];
-            $hasAnySuccess = false;
+            $allSuccessful = true;
             
             // Processar resultados de cada seller
             foreach ($results as $seller => $result) {
@@ -4174,7 +4174,6 @@ class CalculoFrete {
                 ];
                 
                 if ($result['success'] && isset($result['data']['shipping_methods'])) {
-                    $hasAnySuccess = true;
                     $aggregatedData['summary']['successful_sellers']++;
                     
                     $sellerData['shipping_methods'] = $result['data']['shipping_methods'];
@@ -4213,6 +4212,7 @@ class CalculoFrete {
                 } else {
                     $aggregatedData['summary']['failed_sellers']++;
                     $sellerData['error'] = $result['data']['message'] ?? 'Erro desconhecido';
+                    $allSuccessful = false;
                 }
                 
                 $aggregatedData['sellers'][] = $sellerData;
@@ -4230,10 +4230,10 @@ class CalculoFrete {
             }
             
             // Determinar sucesso geral
-            $aggregatedData['success'] = $hasAnySuccess;
-            
-            if (!$hasAnySuccess) {
-                $aggregatedData['message'] = 'Nenhuma cotação bem-sucedida encontrada para os sellers';
+            $aggregatedData['success'] = $allSuccessful;
+
+            if (!$allSuccessful) {
+                $aggregatedData['message'] = 'Não há cotação de frete disponível para este carrinho';
             }
             
             // Log para debugging
