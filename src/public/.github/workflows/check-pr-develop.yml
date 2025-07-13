@@ -1,0 +1,62 @@
+name: Testes Develop
+
+on:
+  pull_request:
+    branches: [ "develop" ]
+    types: [ opened, reopened, synchronize, edited ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  atualizar-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+#      - name: Executar teste fake de migrations
+#        id: check_tests
+#        run: |
+#          git fetch origin master
+#          if git diff --name-only origin/master...HEAD | grep -q '^application/migrations/'; then
+#            echo "::set-output name=testResult::passed"
+#          else
+#            echo "::set-output name=testResult::failed"
+#          fi
+
+#      - name: Solicitar aprovação automática e atribuição
+#        if: steps.check_tests.outputs.testResult == 'passed'
+#        uses: actions/github-script@v6
+#        with:
+#          script: |
+#            const pull_number = context.payload.pull_request.number;
+#            const pr = context.payload.pull_request;
+#            if (pr.requested_reviewers && pr.requested_reviewers.length > 0) {
+#              console.log("Já existe um revisor designado. Nenhuma ação tomada.");
+#              return;
+#            }
+#            const reviewersList = ["dilneiss", "dilneiconectala"];
+#            const prAuthor = pr.user.login;
+#            const filteredReviewers = reviewersList.filter(rev => rev !== prAuthor);
+#            if (filteredReviewers.length === 0) {
+#              console.log("Não há revisores disponíveis que não sejam o autor do PR.");
+#              return;
+#            }
+#            const selectedReviewer = filteredReviewers[Math.floor(Math.random() * filteredReviewers.length)];
+#            console.log(`Revisor selecionado: ${selectedReviewer}`);
+#            await github.rest.pulls.requestReviewers({
+#              owner: context.repo.owner,
+#              repo: context.repo.repo,
+#              pull_number: pull_number,
+#              reviewers: [selectedReviewer]
+#            });
+#            await github.rest.issues.addAssignees({
+#              owner: context.repo.owner,
+#              repo: context.repo.repo,
+#              issue_number: pull_number,
+#              assignees: [selectedReviewer, prAuthor]
+#            });

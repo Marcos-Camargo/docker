@@ -1,56 +1,61 @@
-FROM php:7.2.24-fpm
+FROM php:7.4.33-fpm
 
-RUN mkdir -p /etc/nginx/conf.d
+# Instala dependencias.
+RUN buildDeps=" \
+        default-libmysqlclient-dev \
+        libbz2-dev \
+        libmemcached-dev \
+        libsasl2-dev \
+    " \
+    runtimeDeps=" \
+        curl \
+        git \
+        nano \
+        libfreetype6-dev \
+        libicu-dev \
+        libjpeg-dev \
+        libldap2-dev \
+        libmemcachedutil2 \
+        libpng-dev \
+        libpq-dev \
+        libxml2-dev \
+        libzip-dev \
+        libonig-dev \
+        libgd-dev \
+        nginx \
+        supervisor \
+    " \
+    && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y $buildDeps $runtimeDeps \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/ \
+    && docker-php-ext-install bcmath bz2 calendar iconv intl mbstring mysqli opcache pdo_mysql pdo_pgsql pgsql soap zip gd ldap exif \
+    && pecl install memcached redis \
+    && docker-php-ext-enable memcached redis \
+    && apt-get purge -y --auto-remove $buildDeps \
+    && rm -r /var/lib/apt/lists/*
 
-RUN echo 'deb http://httpredir.debian.org/debian jessie contrib' >> /etc/apt/sources.list
+# Instala Composer.
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && ln -s $(composer config --global home) /root/composer
 
-RUN apt-get update
-RUN export DEBIAN_FRONTEND=noninteractive && apt-get install -y --force-yes libssl-dev curl  libcurl4-gnutls-dev libxml2-dev libicu-dev libmcrypt4 libmemcached11 openssl
+# Instala Xdebug.
+RUN pecl install xdebug-3.1.6 \
+    && docker-php-ext-enable xdebug \
+    && echo "zend_extension=xdebug.so" > /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.start_with_request=yes" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_port=9003" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.discover_client_host=1" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
-#CONFIGURAÇÕES DO OPCACHE
-RUN docker-php-ext-install opcache
+# Env
+ENV PATH=$PATH:/root/composer/vendor/bin \
+    COMPOSER_ALLOW_SUPERUSER=1
 
-#CONFIGURAÇÕES DO APCU
-RUN pecl install apcu-5.1.5 && docker-php-ext-enable apcu
+# Adiciona as configs.
+COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
+COPY ./supervisor/supervisord.conf /etc/supervisord.conf
 
-#LIBS EXTRAS
-RUN docker-php-ext-install bcmath
-RUN apt-get install -y libbz2-dev
-RUN docker-php-ext-install bz2
-RUN docker-php-ext-install mbstring
-RUN apt-get install -y libpq-dev
-RUN apt-get install -y libicu-dev
-RUN docker-php-ext-install intl
 
-#GD
-RUN apt-get install -y libfreetype6-dev libjpeg62-turbo-dev libpng16-16
-RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
-RUN docker-php-ext-install gd
-
-#PDO - CUSTOMIZAR A SEU DISPOR
-RUN docker-php-ext-install pdo_mysql
-
-RUN docker-php-ext-install mysqli pdo pdo_mysql && docker-php-ext-enable pdo_mysql
-
-RUN apt-get install tree
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug
-# Configuração para passar os gruoup by
-# SET GLOBAL sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
-
-ARG WITH_XDEBUG=true
-RUN apt-get install ssh nano -y
-RUN dpkg --add-architecture i386
-# RUN apt-get update -y
-# RUN apt-get upgrade -y
-# RUN apt-get install -y git busild-essential make gcc vim net-tools iputils-ping ca-certificates openssh-server libc6:i386 libstdc++6:i386
-RUN echo "root:root" | chpasswd
-RUN sed -i 's/prohibit-password/yes/' /etc/ssh/sshd_config
-RUN cat /etc/ssh/sshd_config
-RUN mkdir /root/.ssh
-RUN chown -R root:root /root/.ssh;chmod -R 700 /root/.ssh
-RUN echo “StrictHostKeyChecking=no” >> /etc/ssh/ssh_config
-RUN service ssh restart
-EXPOSE 22
-EXPOSE 80
-WORKDIR /public
+# Inicia o supervisor para rodar NGINX e PHP-FPM.
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]

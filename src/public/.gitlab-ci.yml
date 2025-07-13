@@ -1,0 +1,8 @@
+stages:
+  - test
+
+deployment-test:
+  stage: test
+  only: 
+    - development
+  when: manual

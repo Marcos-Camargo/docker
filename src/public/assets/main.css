@@ -1,0 +1,39 @@
+body{
+    background-color: #222!important;
+}
+.brand-logo {
+    margin-bottom: 20px;
+}
+
+.checkRemember{
+    padding-left: 7%;
+}
+
+.fluid-content{
+    background-color: #f7f7f7;
+    margin-top: 3%;
+    padding: 0;
+}
+
+.authfy-panel-left{
+    padding: 0;
+}
+.authfy-panel-right{
+    padding: 3%;
+}
+.banner-login{
+    width: 100%;
+    max-height: 550px;
+    
+}
+
+@media screen and (max-width: 767px){
+    .checkRemember{
+        padding-left: 5%;
+    }
+    
+.headline{
+    font-size: 20px;
+}
+
+}

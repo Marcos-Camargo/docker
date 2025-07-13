@@ -1,0 +1,106 @@
+.fundo-login{
+    background-color: #8D6742!important;
+}
+.btn-primary {
+  color: #8D6742;
+  background-color: #F4F1EC;
+  border-color: #8D6742;
+}
+
+.btn-primary:focus,
+.btn-primary.focus {
+  color: #8D6742;
+  background-color: #F4F1EC;
+  border-color: #8D6742;
+}
+
+.btn-primary:hover {
+  color: #65462A;
+  background-color: #DED5C5;
+  border-color: #65462A;
+}
+
+.btn-primary:active:hover,
+.btn-primary.active:hover,
+.open > .dropdown-toggle.btn-primary:hover,
+.btn-primary:active:focus,
+.btn-primary.active:focus,
+.open > .dropdown-toggle.btn-primary:focus,
+.btn-primary:active.focus,
+.btn-primary.active.focus,
+.open > .dropdown-toggle.btn-primary.focus {
+  color: #F4F1EC;
+  background-color: #8D6742;
+  border-color: #F4F1EC;
+}
+
+.skin-conectala .sidebar-menu>li.active>a, .skin-conectala .sidebar-menu>li:hover>a {
+    color: #8D6742;
+    background: #DED5C5;
+}
+
+.skin-conectala .sidebar-menu .treeview-menu>li>a {
+    color: #8D6742;
+}
+
+.skin-conectala .sidebar-menu .treeview-menu>li.active>a, .skin-conectala .sidebar-menu .treeview-menu>li>a:hover {
+    color: #8D6742;
+}
+
+.skin-conectala {
+    color: #8D6742;
+}
+
+a:hover, a:active, a:focus {
+    outline: none;
+    text-decoration: none;
+    color: #65462A;
+}
+
+a {
+    color: #8D6742;
+}
+
+.pagination>.active>a, .pagination>.active>a:focus, .pagination>.active>a:hover, .pagination>.active>span, .pagination>.active>span:focus, .pagination>.active>span:hover {
+    z-index: 3;
+    color: #F4F1EC;
+    cursor: default;
+    background-color: #8D6742;
+    border-color: #F4F1EC;
+}
+
+.pagination>li>a {
+    background: #F4F1EC;
+    color: #8D6742;
+}
+
+.pagination>.disabled>a, .pagination>.disabled>a:focus, .pagination>.disabled>a:hover, .pagination>.disabled>span, .pagination>.disabled>span:focus, .pagination>.disabled>span:hover {
+    color: #8D6742;
+    cursor: not-allowed;
+    background-color: #F4F1EC;
+    /* border-color: #8D6742; */
+}
+
+.main-sidebar, header .logo {
+    border-right: 1px solid #8D6742 !important;
+}
+
+.content-wrapper {
+    background-color: #e0d9cdc5;
+}
+
+.small-box.bg-blue-light {
+    color: #8D6742;
+}
+
+.small-box.bg-blue-light i:not(.fa-arrow-circle-right) {
+    color: #8d684270;
+}
+
+.bg-blue {
+    background-color: #8D6742 !important;
+}
+
+.box-primary {
+    border-top-color: #8D6742 !important;
+}

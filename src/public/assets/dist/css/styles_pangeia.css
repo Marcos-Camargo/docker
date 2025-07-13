@@ -1,0 +1,209 @@
+.fundo-login{
+  background-color: #f1f1f1 !important;
+}
+
+.btn-primary {
+  color: #F4F1EC;
+  background-color: #3c5c44;
+  border-color: #3c5c44;
+}
+.btn-primary:hover {
+  color: #f4ecf1;
+  background-color: #212c24;
+  border-color: #212c24;
+}
+
+.btn>.btn-lg>.btn-primary>.btn-block {
+  background-color: #3c5c44;
+  border-color: #3c5c44;
+}
+
+.btn-primary:active:hover,
+.btn-primary.active:hover,
+.open > .dropdown-toggle.btn-primary:hover,
+.btn-primary:active:focus,
+.btn-primary.active:focus,
+.open > .dropdown-toggle.btn-primary:focus,
+.btn-primary:active.focus,
+.btn-primary.active.focus,
+.open > .dropdown-toggle.btn-primary.focus {
+  color: #F4F1EC;
+  background-color: #3c5c44;
+  border-color: #F4F1EC;
+}
+
+.bg-blue {
+  background-color: #3c5c44 !important;
+}
+
+.skin-conectala .sidebar-menu>li.active>a, .skin-conectala .sidebar-menu>li:hover>a {
+  color: #3c5c44;
+  background: #f1f1f1;
+}
+
+.skin-conectala .sidebar-menu .treeview-menu>li>a {
+  color: #3c5c44;
+}
+
+.skin-conectala .sidebar-menu .treeview-menu>li.active>a, .skin-conectala .sidebar-menu .treeview-menu>li>a:hover {
+  color: rgba(237, 28, 35, 0.925);
+}
+
+.skin-conectala {
+  color: #3c5c44;
+}
+
+a:hover, a:active, a:focus {
+  outline: none;
+  text-decoration: none;
+  color: #3c5c44;
+}
+
+.pagination>.active>a, .pagination>.active>a:focus, .pagination>.active>a:hover, .pagination>.active>span, .pagination>.active>span:focus, .pagination>.active>span:hover {
+  z-index: 3;
+  color: #F4F1EC;
+  cursor: default;
+  background-color: #3c5c44;
+  border-color: #F4F1EC;
+}
+
+.pagination>li>a {
+  background: #3c5c44; 
+  color: #3c5c44;
+}
+
+.pagination>.disabled>a, .pagination>.disabled>a:focus, .pagination>.disabled>a:hover, .pagination>.disabled>span, .pagination>.disabled>span:focus, .pagination>.disabled>span:hover {
+  color: #3c5c44;
+  cursor: not-allowed;
+  background-color: #3c5c44;
+  /* border-color: #8D6742; */
+}
+
+.pagination>li>a:focus, .pagination>li>a:hover, .pagination>li>span:focus, .pagination>li>span:hover {
+  z-index: 2;
+  color: #23527c;
+  background-color: #4e7759;
+  border-color: #ddd;
+}
+
+.pagination>.active>a, .pagination>.active>a:focus, .pagination>.active>a:hover, .pagination>.active>span, .pagination>.active>span:focus, .pagination>.active>span:hover {
+  z-index: 3;
+  color: #F4F1EC;
+  cursor: default;
+  background-color: #517a5b;
+  border-color: #F4F1EC;
+}
+
+.content-wrapper {
+  background-color: #ffffff  !important;
+}
+
+.body-black-friday .sidebar-menu>li>.treeview-menu {
+  background-color: #3c5c44 !important;
+}
+
+.content-header
+{
+  background-color: #ffffff !important;
+}
+
+.content-header>h1, .content-header>h1>small, .content-header>.breadcrumb>li>a
+{
+  color: #3c5c44 !important;
+}
+
+.content-header>h1, .content-header>h1>small, .content-header>.breadcrumb>li>a>i.fa
+{
+  color: #3c5c44 !important;
+}
+
+.skin-conectala .card-body {
+  color: #3c5c44;
+}
+
+.skin-conectala .box.box-primary{
+  border-top-color: #3c5c44 !important;
+}
+
+.skin-conectala .box-body .pagination>li>a{
+  color: #f1f1f1 !important;
+}
+
+.skin-conectala .box-body .panel-primary{
+  border-color: #3c5c44  !important;
+}
+
+.skin-conectala .box-body .panel-primary>.panel-heading{
+  background-color: #3c5c44 ;
+  border-color: #3c5c44 ;
+}
+
+.skin-conectala .box-body .pagination .pagination_button>.active>li>a:hover{
+  color: #f1f1f1 !important;
+}
+
+.main-sidebar, header .logo {
+  border-right: 1px solid #f1f1f1 !important;
+}
+
+.skin-conectala>.box {
+  color: #ffffff ;
+}
+
+.panel-collapse>h4 {
+  color: #ffffff;
+}
+
+a:hover, a:active, a:focus {
+  outline: none;
+  text-decoration: none;
+  color: #3c5c44;
+}
+
+a {
+  color: #3c5c44;
+}
+
+.bg-blue {
+  background-color: #3c5c44 !important;
+}
+
+.fundo-login .loginForm .form-group button{
+  color: #F4F1EC;
+  background-color: #3c5c44;
+  border-color: #3c5c44;
+}
+
+
+.fundo-login .loginForm .form-group button:hover{
+color: #F4F1EC;
+background-color: #212c24;
+border-color: #212c24;
+}
+
+.fundo-login{
+  background-color: #3c5c44!important;
+}
+
+
+.main-header .sidebar-toggle {
+  color: #3c5c44 !important;
+}
+
+.small-box.bg-blue-light {
+  color: #3c5c44;
+}
+
+.small-box > .inner {
+  padding: 10px;
+  position: relative;
+  z-index: 10;
+}
+
+.small-box.bg-blue-light i:not(.fa-arrow-circle-right) {
+  color: #f1f1f1;
+}
+
+.box-primary {
+  border-top-color: #3c5c44 !important;
+}

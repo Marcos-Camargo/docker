@@ -1,0 +1,156 @@
+/*
+ * Skin: Blue
+ * ----------
+ */
+.skin-conectala .main-header .navbar {
+  background-color: #3c8dbc;
+}
+.skin-conectala .main-header .navbar .nav > li > a {
+  color: #fff;
+}
+.skin-conectala .main-header .navbar .nav > li > a:hover,
+.skin-conectala .main-header .navbar .nav > li > a:active,
+.skin-conectala .main-header .navbar .nav > li > a:focus,
+.skin-conectala .main-header .navbar .nav .open > a,
+.skin-conectala .main-header .navbar .nav .open > a:hover,
+.skin-conectala .main-header .navbar .nav .open > a:focus,
+.skin-conectala .main-header .navbar .nav > .active > a {
+  background: rgba(0, 0, 0, 0.1);
+  color: #f6f6f6;
+}
+.skin-conectala .main-header .navbar .sidebar-toggle {
+  color: #ffffff;
+}
+.skin-conectala .main-header .navbar .sidebar-toggle:hover {
+  color: #f6f6f6;
+  background: rgba(0, 0, 0, 0.1);
+}
+.skin-conectala .main-header .navbar .sidebar-toggle {
+  color: #fff;
+}
+.skin-conectala .main-header .navbar .sidebar-toggle:hover {
+  background-color: #367fa9;
+}
+@media (max-width: 767px) {
+  .skin-conectala .main-header .navbar .dropdown-menu li.divider {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  .skin-conectala .main-header .navbar .dropdown-menu li a {
+    color: #fff;
+  }
+  .skin-conectala .main-header .navbar .dropdown-menu li a:hover {
+    background: #367fa9;
+  }
+}
+.skin-conectala .main-header .logo {
+  background-color: #3c8dbc;
+  color: #ffffff;
+  border-bottom: 0 solid transparent;
+}
+.skin-conectala .main-header .logo:hover {
+  background-color: #3b8ab8;
+}
+.skin-conectala .main-header li.user-header {
+  background-color: #3c8dbc;
+}
+.skin-conectala .content-header {
+  background: transparent;
+}
+.skin-conectala .wrapper,
+.skin-conectala .main-sidebar,
+.skin-conectala .left-side {
+  background-color: #f9fafc;
+}
+.skin-conectala .main-sidebar {
+  border-right: 1px solid #d2d6de;
+}
+.skin-conectala .user-panel > .info,
+.skin-conectala .user-panel > .info > a {
+  color: #444444;
+}
+.skin-conectala .sidebar-menu > li {
+  -webkit-transition: border-left-color 0.3s ease;
+  -o-transition: border-left-color 0.3s ease;
+  transition: border-left-color 0.3s ease;
+}
+.skin-conectala .sidebar-menu > li.header {
+  color: #848484;
+  background: #f9fafc;
+}
+.skin-conectala .sidebar-menu > li > a {
+  border-left: 3px solid transparent;
+  font-weight: 600;
+}
+.skin-conectala .sidebar-menu > li:hover > a,
+.skin-conectala .sidebar-menu > li.active > a {
+  color: #013c76; /* alterado */
+  background: #E6E6FA; /* alterado */
+}
+.skin-conectala .sidebar-menu > li.active {
+  border-left-color: #3c8dbc;
+}
+.skin-conectala .sidebar-menu > li.active > a {
+  font-weight: 600;
+}
+.skin-conectala .sidebar-menu > li > .treeview-menu {
+  background: #f4f4f5;
+}
+.skin-conectala .sidebar a {
+  color: ##0066CC;  /* alterado */
+}
+.skin-conectala .sidebar a:hover {
+  text-decoration: none;
+}
+.skin-conectala .sidebar-menu .treeview-menu > li > a {
+  color: #044d96; /* alterado */
+}
+.skin-conectala .sidebar-menu .treeview-menu > li.active > a,
+.skin-conectala .sidebar-menu .treeview-menu > li > a:hover {
+  color: #1a1aff; /* alterado */
+}
+.skin-conectala .sidebar-menu .treeview-menu > li.active > a {
+  font-weight: 600;
+}
+.skin-conectala .sidebar-form {
+  border-radius: 3px;
+  border: 1px solid #d2d6de;
+  margin: 10px 10px;
+}
+.skin-conectala .sidebar-form input[type="text"],
+.skin-conectala .sidebar-form .btn {
+  box-shadow: none;
+  background-color: #fff;
+  border: 1px solid transparent;
+  height: 35px;
+}
+.skin-conectala .sidebar-form input[type="text"] {
+  color: #666;
+  border-top-left-radius: 2px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 2px;
+}
+.skin-conectala .sidebar-form input[type="text"]:focus,
+.skin-conectala .sidebar-form input[type="text"]:focus + .input-group-btn .btn {
+  background-color: #fff;
+  color: #666;
+}
+.skin-conectala .sidebar-form input[type="text"]:focus + .input-group-btn .btn {
+  border-left-color: #fff;
+}
+.skin-conectala .sidebar-form .btn {
+  color: #999;
+  border-top-left-radius: 0;
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+  border-bottom-left-radius: 0;
+}
+@media (min-width: 768px) {
+  .skin-conectala.sidebar-mini.sidebar-collapse .sidebar-menu > li > .treeview-menu {
+    border-left: 1px solid #d2d6de;
+  }
+}
+.skin-conectala .main-footer {
+  border-top-color: #d2d6de;
+}
+

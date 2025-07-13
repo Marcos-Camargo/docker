@@ -1,0 +1,260 @@
+ol.step-progress-bar {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+ol.step-progress-bar li {
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+    flex: 1 1;
+    position: relative;
+    margin: 0 5px 0;
+}
+
+ol.step-progress-bar li span.content-bullet {
+    border-radius: 100%;
+    display: block;
+    text-align: center;
+    transform: translateX(-50%);
+    margin-left: 50%;
+}
+
+ol.step-progress-bar li span.content-wpp {
+    display: inline-block;
+    overflow: visible;
+    width: 100%;
+    padding: 0;
+}
+
+ol.step-progress-bar li span.content-stick {
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 8px;
+    z-index: -1;
+    transform: translate(-50%, -50%);
+}
+
+/* Cores. Sinta-se livre para alterar. */
+
+/* Cor padrão.
+Passado: #2dcd73 (verde) e branco.
+Presente: #4c92d9 (azul) e branco.
+Futuro: #dde2e3 (cinza claro) e #869398 (cinza escuro).
+*/
+
+ol.step-progress-bar li.step-past *,
+ol.step-progress-bar li.step-present .content-stick {
+    color: #2dcd73;
+    background: #2dcd73;
+}
+
+ol.step-progress-bar li.step-present * {
+    color: #4c92d9;
+    background: #4c92d9;
+}
+
+ol.step-progress-bar li.step-past *,
+ol.step-progress-bar li.step-delay .content-stick {
+    color: #2dcd73;
+    background: #2dcd73;
+}
+
+ol.step-progress-bar li.step-delay * {
+    color: #ff0000;
+    background: #ff0000;
+}
+
+ol.step-progress-bar li .content-bullet {
+    color: white;
+}
+
+ol.step-progress-bar li.step-future * {
+    color: #869398;
+    background: #dde2e3;
+}
+
+ol.step-progress-bar li .content-wpp {
+    background: transparent;
+}
+
+/* Cor especial 1.
+Passado: vemelho
+Presente: laranja
+Futuro: amarelo
+Cor dos números: azul
+*/
+
+ol.step-progress-bar.cor-especial li.step-past *,
+ol.step-progress-bar.cor-especial li.step-present .content-stick {
+    color: red;
+    background: red;
+}
+
+ol.step-progress-bar.cor-especial li.step-present * {
+    color: orange;
+    background: orange;
+}
+
+ol.step-progress-bar.cor-especial li.step-past *,
+ol.step-progress-bar.cor-especial li.step-delay .content-stick {
+    color: red;
+    background: red;
+}
+
+ol.step-progress-bar.cor-especial li.step-delay * {
+    color: red;
+    background: red;
+}
+
+ol.step-progress-bar.cor-especial li.step-future * {
+    color: yellow;
+    background: yellow;
+}
+
+ol.step-progress-bar.cor-especial li .content-bullet {
+    color: blue;
+}
+
+ol.step-progress-bar.cor-especial li .content-wpp {
+    background: transparent;
+}
+
+/* Cor especial 2. */
+
+#gelado * {
+    color: blue;
+    background: blue;
+}
+
+#frio * {
+    color: cyan;
+    background: cyan;
+}
+
+#morno * {
+    color: lime;
+    background: lime;
+}
+
+#quente * {
+    color: yellow;
+    background: yellow;
+}
+
+#fervendo * {
+    color: red;
+    background: red;
+}
+
+#cores-temperatura .content-wpp {
+    background: transparent;
+}
+
+#cores-temperatura .content-bullet {
+    color: black;
+}
+
+#cores-temperatura .content-wpp {
+    text-shadow: 0 0 1px black, 0 0 8px purple;
+}
+
+
+#cores-temperatura li.step-present {
+    font-weight: bold;
+    font-size: 120%;
+}
+
+#cores-temperatura li.step-present .content-bullet {
+    width: 55px;
+    line-height: 55px;
+    transform: translate(-27px, -9px);
+    font-size: 200%;
+    color: pink;
+    text-shadow: 0 1px black, 1px 0 black, -1px 0 black, 0 -1px black;
+}
+
+
+#cores-temperatura li.step-delay {
+    font-weight: bold;
+    font-size: 120%;
+}
+
+#cores-temperatura li.step-delay .content-bullet {
+    width: 55px;
+    line-height: 55px;
+    transform: translate(-27px, -9px);
+    font-size: 200%;
+    color: red;
+    text-shadow: 0 1px black, 1px 0 black, -1px 0 black, 0 -1px black;
+}
+
+#cores-temperatura li .content-stick {
+    background: purple;
+}
+
+/* Tamanhos. */
+
+/* Tamanho pequeno:
+Bolinha de 25px de diâmetro.
+Fonte 75%.
+Conector 4px de altura.
+*/
+
+ol.step-progress-bar.small li .content-bullet {
+    width: 25px;
+    line-height: 25px;
+}
+
+ol.step-progress-bar.small li {
+    font-size: 75%;
+}
+
+ol.step-progress-bar.small li .content-stick {
+    top: 12.5px; /* Metade do diâmetro. */
+    height: 4px;
+}
+
+/* Tamanho médio:
+Bolinha de 37px de diâmetro.
+Fonte 100%.
+Conector 6px de altura.
+*/
+
+ol.step-progress-bar.mid li .content-bullet {
+    width: 37px;
+    line-height: 37px;
+}
+
+ol.step-progress-bar.mid li {
+    font-size: 100%;
+}
+
+ol.step-progress-bar.mid li .content-stick {
+    top: 36px; /* Metade do diâmetro. */
+    height: 6px;
+}
+
+/* Tamanho grande:
+Bolinha de 49px de diâmetro.
+Fonte 120%.
+Conector 8px de altura.
+*/
+
+ol.step-progress-bar.large li .content-bullet {
+    width: 49px;
+    line-height: 49px;
+}
+
+ol.step-progress-bar.large li {
+    font-size: 125%;
+}
+
+ol.step-progress-bar.large li .content-stick {
+    top: 24.5px; /* Metade do diâmetro. */
+    height: 8px;
+}

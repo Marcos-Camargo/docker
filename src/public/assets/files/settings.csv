@@ -1,0 +1,188 @@
+Nome amigável;Nome do parametro;Wiki;Categoria
+Dominio agidesk;Agidesk;"Esse parâmetro deve ser ativado quando o sistema utiliza Agidesk e o valor do parâmetro deve ser o dominio do Agidesk do cliente. Por exemplo, se o Agidesk do cliente é exemplo.agidesk.com, o valor do parâmetro deve ser ""exemplo"".";Atendimento
+Senha Agidesk;pass_agidesk; Esse parâmetro deve ser ativado quando o sistema utiliza Agidesk e o valor do parâmetro deve ser a senha do usuário administrador do Agidesk , para realizarmos a integração API;Atendimento
+Usuário Agidesk;user_agidesk; Esse parâmetro deve ser ativado quando o sistema utiliza Agidesk e o valor do parâmetro deve ser o usuário administrador do Agidesk , para realizarmos a integração API. Somente se o Sellercenter foi utilizar agidesk com o seller;Atendimento
+;accept_order_without_payment_data;Exclusivo para a Vertem. - Permite que pedidos sem pagamento aprovado seja incluido na liberação de pagamento.;Financeiro
+;allow_automatic_antecipation;Esse parâmetro faz a liberação dos campos no cadastro da loja quando ativo. Campos para cadastro de antecipação automática do lojista. Exclusivo pagarme V2;Financeiro
+;allow_campaign_trade_policies;;Financeiro
+Permitir alterar CNPJ de loja;allow_cnpj_store_update;Se ativo liberar alterar o CNPJ de loja criada;Financeiro
+;allow_create_campaigns_b2w_type;campanha do tipo B2W. Exclusivo conecta lá;Financeiro
+;allow_payment_reconciliation_installments;"Se ativo, módulo de parcelamento está disponível para uso. ""Liberação de pagamento parcelada - PagarMe. Exclusivo pagarme";Financeiro
+;antecipacao_dx_default;"Quando ativo preenche o campo com “D+X”, se o parâmetro estiver inativo, o preenchimento padrão será o tipo “Full"". Campos para cadastro de antecipação automática do lojista. Exclusivo Pagarme V2";Financeiro
+Colunas de informação sobre cancelamento;canceled_orders_data_conciliation;se ativo ele vai apresentar 03 colunas relacionados ao cancelamentO;Financeiro
+;check_batch_refund_release_payment_param;Liberar execução do Batch para calculos de devolução de produtos devolvidos;Financeiro
+;data_transferencia_default;"o valor do parâmetro deve ser o dia da transferência padrão; se o parâmetro estiver inativo, não terá valor padrão. Campos para cadastro de antecipação automática do lojista. Exclusivo Pagarme V2";Financeiro
+;default_payment_reconciliation_installments_enabled;se o cliente pagou em 10 vezes ele vai receber em 10 vezes ;Financeiro
+Digitos do Cartão no relatório financeiro;digitos_cartao_relatorio_fin;quando ativo ele aparece no relatorio financeiro os digitos do cartao;Financeiro
+;intervalo_transferencia_default;"O valor do parâmetro deve ser o intervalo padrão (Diário, Semanal ou Mensal); se o parâmetro estiver inativo, não terá valor padrão. Campos para cadastro de antecipação automática do lojista. Exclusivo Pagarme V2";Financeiro
+;invoice_responsible_email;Pessoa responsavél pelo Seller Center  - Solicitado cancelamento de uma NF ;Financeiro
+;irrf_painel_financeiro;permite escolher se essa taxa de imposto será somada ou não no repasse ao seller. Controle do que acontece com o IRRF;Financeiro
+;irrf_valor_painel_financeiro;permite que seja adicionado qual a porcentagem do imposto. Sempre preencher utilizando ponto. Controle do que acontece com o IRRF;Financeiro
+;notificacao_painel_juridico_extrato;Ao ativar o parâmetro notificacao_painel_juridico_extrato, será possível enxergar na planilha de extrato todos os débitos confirmados em conciliações ou liberações de pagamento realizados por meio do painel jurídico.Notificações do painel jurídico na planilha de extrato. Isso não deveria estar ativado em geral????;Financeiro
+;painel_financeiro_data_repasse_sellercenter;O seller center pode escolher ter a data que foi feita a transferência bancária incluída no extrato do lojista. Para isso, basta configurar o parâmetro: Data da transferência bancária na planilha de extrato;Financeiro
+;payment_gateway_id;Defini qual gateway o sellercenter irá utilizar (Moip, Getnet, Pagarme);Financeiro
+;usar_mascara_banco;Precisa estar sempre desativado. limita os caracteres de dados dos bancos - mascara;Financeiro
+;valor_pagamento_gateway_extrato;Exibe na planilha de extrato o valor do repasse que foi enviado para o gateway. Duas novas colunas no extrato: Data da transferência Gateway e Valor real repasse. Não deveria estar ativado em todos;Financeiro
+Application Id ANYMARKET;app_id_anymarket;" É preenchido quando a plataforma tem integração.
+Inseri as chaves de configuração da integradora";Integração
+Chave de aplicação Loja Integrada;chave_aplicacao_loja_integrada;" É preenchido quando a plataforma tem integração.
+Inseri as chaves de configuração da integradora";Integração
+Credenciais PluggTo;credencial_pluggto;" É preenchido quando a plataforma tem integração.
+Inseri as chaves de configuração da integradora";Integração
+Developer Id Tiny;developer_id_tiny;"É preenchido quando a plataforma tem integração.
+Inserir as chaves de configuração da integradora";Integração
+;franchise_on_store;Parametro criado pro modelo do Grupo Soma;Integração
+;integrate_MarketplaceBrand_incomplete;"Preenche os dados necessários de criação de marca na Vtex.
+Sem o parâmetro não conseguimos criar marca pelo sellercenter";Integração
+URL API Loja Integrada;loja_integrada_api_url; É preenchido quando a plataforma tem integração Inseri as chaves de configuração da integradora;Integração
+;payment_intermediary_pluggto;" É preenchido quando a plataforma tem integração.
+CNPJ do gateway financeiro";Integração
+;send_sellername_attribute;"Envia o nome do lojista em um campo definido pelo marketplace.
+No valor do parametro coloca o nome do campo";Integração
+;token_change_seller;É um token para trocar o pedido de uma loja no sistema do soma. Personalizado p/ Grupo Soma. Nunca foi usado.;Integração
+Utilizar apenas Catalogo de Produtos;use_catalog_integration_erp;quando ativo nao vem nenhum produto de ERP.;Integração
+;vtex_commercial_condition_id;Somente se o cliente for utilizar condição diferente de 1;Integração
+;vtex_seller_name_no_prefix;Se estiver ativo não enviará o prefix para o nome do seller vtex;Integração
+;vtex_weight_in_grams;Se estiver ativo, o peso deverá ser em gramas para receber ou enviar para a VTEX, caso contrário em KG;Integração
+;adicional_frete;Taxa adicional sob o preço quando for maior que 40,00  reais o frete.;Logística
+;credentials_correios;Somente necessário se o Sellercenter for disponibilizar seu contrato via correio.;Logística
+;dias_para_anonimizar_pedidos;Tempo em dias  que meus dados serão excluídos da plataforma apos o cancelamento;Logística
+;financial_intermediary_cnpj;Intermediador financeiro da VIA, com integração B2B.;Logística
+;financial_intermediary_corporate_name;Intermediador financeiro da VIA, com integração B2B.;Logística
+Frete apenas da SGP;frete_contratar_apenas_sgp;Contratar o frete usando apenas a logística do SGP e serviço do orders.ship_service_preview;Logística
+Frete mais barato;frete_mais_barato;Quando campo ativo o frete mais barato será habilitado;Logística
+Busca nome conta na Sequoia;plataform_sequoia_sellercenter;Descobre o nome da conta cadastrada na Sequoia. ;Logística
+;quote_sequoia_table_internal;Verifica se a logística sequoia deve ser colocada em tabela interna ou não.;Logística
+;sgp_integrated_default;Quando esse parâmetro estiver ativo, sempre que um novo seller for cadastrado no seller center, automaticamente será configurada a integração do SGP com contrato do seller center para o novo seller.. Novo Parâmetro - Ativar correios automaticamente ao cadastrar um novo seller. Caso o sellercenter for utilizar o correio obrigatório é valido;Logística
+;stores_test_loggi;Teste que foi feito para pedidos que seriam entregues pela transportadora Loggi. No fim ele acabou servindo para que os pedidos caíssem direto para contratação manual após o faturamento.;Logística
+;token_frete_rapido_master;Obrigatório inserir token do Frete Rápido se for utilizar.;Logística
+;alert_days_update_price_catalog;quanto em quanto tempo para atualizar os preços do catalogo;Onboarding & Produto
+;alert_percentage_update_price_catalog;percentual de aumento do preço, conforme parâmetro alert_days_update_price_catalog;Onboarding & Produto
+;birth_date_requered_to_responsable_store;Se ativo deixa obrigatorio a data de aniversário no cadastro da loja;Onboarding & Produto
+;catalog_products_allow_ean_duplicate; Permite que o catálogo de produtos tenha Código de Barras (ean) duplicado. Só configurar este parâmetro quando o catálogo vier do marketplace;Onboarding & Produto
+;catalog_products_auto_publish; Se ativo, irá publicar em todos os marketplaces quando for criado um produto do catálogo, sem a necessidade de publicar;Onboarding & Produto
+;catalog_products_dont_modify_price; Se estiver ativo não pode mudar o preço de um produto criado de catálogo de produtos;Onboarding & Produto
+;catalog_products_ean_name; Redefinição do nome do campo EAN no catálogo de produtos;Onboarding & Produto
+;catalog_products_error_ean; Mensagem de erro para quando o EAN estiver errado no catálogo de produtos ;Onboarding & Produto
+;catalog_products_require_ean; Quando ativo, torna obrigatório uso de EAN nos produtos (tanto pai, quanto variação) para produtos de catálogo;Onboarding & Produto
+;catalog_products_verify_ean; Quando ativo, verifica se o EAN enviado está no padrão GTIN13 no catálogo de produtos ;Onboarding & Produto
+;catalogs_allowable_tags;infrorma qual as tags permitidas . ( deixar a frase em negrito , colocar imagem);Onboarding & Produto
+;category_dont_show_link_marketplace;Se ativo, não mostrar o icone para linkar a categoria com o marketplace. Usado em sellercenter de 1 só marketplace;Onboarding & Produto
+;change_seller;Possibilita o seller a não atender o pedido e ser direcionado para outro seller (Seller Center);Onboarding & Produto
+;create_seller_vtex;Parametro criado pro modelo do Grupo Soma;Onboarding & Produto
+Prazo para deletar arquivos temporários;days_to_delete_temp_file;DIas para deletar os arquivos temporários da exportação de CSV;Onboarding & Produto
+;default_group_id_api_users;quando cria um usuário por API é nesse número de Grupo que o usuário cai se não passarem o grupo na criação do usuário;Onboarding & Produto
+Tour de onboarding guiado;guided_tour;Navegação guiada, qunado você logava a primeira vez ele fazia um tour na tela para ensino do uso da ferramenta. ;Onboarding & Produto
+Aplicar cores do sellercenter;layout_seller_center; Se ativo, irá aplicar as cores do sellercenter de acordo como o nome definido no parâmetro sellercenter. Só funcionará se existir o arquivo de css correspondente.;Onboarding & Produto
+Link vídeo de treinamento;link_video_trainning;Deixa o link de vídeo de treinamento disponível no topo das páginas;Onboarding & Produto
+;metabase_dashboard_seller_index;"Ativar somente para ambiente de produção.
+Parâmetro configurado pelo time de BI para publicar o relatório do seller index na pagina do dashboard";Onboarding & Produto
+;numero_dias_dx_default;antecipação de pagamento , o tempo em dias . Pagamento parcelado;Financeiro
+;permite_variacao_nos_atributos;Se a categoria obrigar a voltagem, e o produto não tiver voltagem, me permite cadastrar a variação como atributo.;Onboarding & Produto
+;porcentagem_antecipacao_default;% do valor que ele pode antecipar;Financeiro
+Preço Mínimo aceito;preco_minimo; Menor valor que este sellercenter irá aceitar como preço. Cadastre com o valor 0.01 para não aceitar preço zerado;Onboarding & Produto
+;price_qty_by_marketplace;quando ativo ele permite informar preço e quantidade por MKTP ;Onboarding & Produto
+;products_require_ean; Quando ativo, torna obrigatório uso de EAN nos produtos (tanto pai, quanto variação);Onboarding & Produto
+;products_verify_ean;Se ativo, irá verificar se o EAN é verdadeiro.;Onboarding & Produto
+;store_cpf_optional;cpf opcional no cadastro da loja ( responsável );Onboarding & Produto
+;store_initial_code_module_v2_integration;aqui é a loja que vai usar a versão nova da integração..o id;Onboarding & Produto
+;store_optional_bank_details;deixar opcional informaçoes do banco;Onboarding & Produto
+;time_not_return_stock_cancel_order;tempo em minutos - se for cancelado nesse tempo volta estoque;Onboarding & Produto
+;tranning_url;" Quando ativo, esse parâmetro disponibiliza o menu ""Vídeos de treinamento"". O valor do parâmetro deve ser a URL da playlist de treinamento na plataforma
+Personalizado para conecta lá";Onboarding & Produto
+;variacao_cor_default;" Se ativo. irá colocar o valor definido como default no envio para o marketplace para casos de categorias que exigem a variação por cor mas que esta não foi preenchida pelo lojista. Quando uma categoria exigir a variação cor e o produto não tiver nenhuma variação cor cadastrada o seller center vai preencher o campo de acordo com o que tiver no ""value"" do parâmetro.";Onboarding & Produto
+;variacao_sabor;Ativa a variação de sabor quando necessário;Onboarding & Produto
+;variacao_tamanho_default;" Se ativo. irá colocar o valor definido como default no envio para o marketplace para casos de categorias que exigem a variação por cor mas que esta não foi preenchida pelo lojista. Quando uma categoria exigir a variação tamanho do produto não tiver nenhuma variação de tamanho cadastrada o seller center vai preencher o campo de acordo com o que tiver no ""value"" do parâmetro.";Onboarding & Produto
+;variacao_valor_default;"Ativar somente em caso de necessidade.
+Quando ativo se o produto não tiver uma variação exigida pela categoria, ele vai preencher com N/A e publicar";Onboarding & Produto
+;variant_color_attribute; Funciona apenas para sellercenter Vtex, quando ativa em com um valor redefine a variação Cor para um novo nome que deve ter necessariamente estar cadastrada como atributo do tipo variação de Cornas categorias que são baixadas da Vtex, Por exemplo;Onboarding & Produto
+;variant_size_attribute; Funciona apenas para sellercenter Vtex, quando ativa em com um valor redefine a variação TAMANHO para um novo nome que deve ter necessariamente estar cadastrada como atributo do tipo variação de Tamanho nas categorias que são baixadas da Vtex, Por exemplo;Onboarding & Produto
+;variant_voltage_attribute; Funciona apenas para sellercenter Vtex, quando ativa em com um valor redefine a variação VOLTAGEM para um novo nome que deve ter necessariamente estar cadastrada como atributo do tipo variação de Voltagem nas categorias que são baixadas da Vtex, Por exemplo;Onboarding & Produto
+;view_indicator_quality;Mostrar indicador de qualidade no dashboard da loja;Onboarding & Produto
+;view_movie_training;" Quando ativo, exibe os botões de ""Vídeo de treinamento"" para as telas do sistema";Onboarding & Produto
+;vtex_catalog_import_access_ean_duplicate;Exclusivo para grupo SOMA e Reserva. Ao baixar o catalogo aceitar qualquer coisa no EAN;Onboarding & Produto
+;casaevideo_painel_financeiro;Variável responsável por controlar os menus de acesso para o Novo mundo;Personalizado
+;disable_category_variation_check_on_catalog_products; Se ativo não irá verificar ao salvar um produto de catalogo se a categoria exige um tipo de variação específico ou seus valores. Só utilizar quando os catálogos do sellercenter vierem da Vtex como no caso do GrupoSoma e Reserva;Personalizado
+;gsoma_painel_financeiro;Variável responsável por controlar os menus de acesso para o Novo mundo;Personalizado
+;negociacao_marketplace_campanha;Para esse tipo de negócio existe duas comissões cobradas: Marketplace - Comissão - Conecta Lá - Comissão - Lojista. Novo tipo de campanha > Negociação Marketplace. Conecta Lá;Personalizado
+;novomundo_painel_financeiro;Variável responsável por controlar os menus de acesso para o Novo mundo;Personalizado
+;ortobom_painel_financeiro;Variável responsável por controlar os menus de acesso para o Novo mundo;Personalizado
+;agidesk_conectala; Esse parâmetro é apenas utilizado por sistemas seller centers, para que os administradores do seller center possam abrir chamado no Agidesk da Conecta Lá. Precisa ser preenchido com o dominio do Agidesk da Conecta Lá.;Atendimento
+;pass_agidesk_conectala; Esse parâmetro é apenas utilizado por sistemas seller centers, para que os administradores do seller center possam abrir chamado no Agidesk da Conecta Lá. O valor do parâmetro deve ser a senha do usuário administrador do Agidesk da Conecta Lá , para realizarmos a integração API;Atendimento
+;use_agidesk;Se estiver ativo, aparecerá o menu Atendimento agidesk;Atendimento
+;user_agidesk_conectala; Esse parâmetro é apenas utilizado por sistemas seller centers, para que os administradores do seller center possam abrir chamado no Agidesk da Conecta Lá. O valor do parâmetro deve ser o usuário administrador do Agidesk da Conecta Lá , para realizarmos a integração API;Atendimento
+;metabase_dashboard_monitoring;"Apresentar o dashboard correto na página inicial, pode variar os valores
+Somente ambiente PRD";BI
+;allow_campaign_payment_method.;Ativa/Inativa Campanhas VTEX por meio de pagamento;Financeiro
+;api_comission;usa API para comissão de produtos - somente ZEMA;Financeiro
+;conciliation_type;Se ativo o sistema realiza a liberação de pagamento. Se inativo será feito conciliação;Financeiro
+;frete_100_canal_seller_centers_vtex;Sempre deve ficar ativo - Modifica o split para ter 100% do frete para o marketplace quando a logistica e oferecida por ele.;Financeiro
+;get_sensitive_payment_data;Quando ativo irá trazer os dados mais sensíveis do pagamento do cliente.;Financeiro
+;minutes_sincronize_stores_with_gateway_account;é uma variável nossa que controla de quanto em quanto tempo o job de atualização de subconta na pagar.me vai executar, então por exemplo editei um loja e aí essa variável controla em quantos minutos após a edição ela poderá ser efetivametne editada na pagar.me;Financeiro
+;orders_precancelled_to_zero;"Zera as taxas de comissão dos pedidos com ""cancelamento_pré""";Financeiro
+;painel_fiscal_url_manual;"URL (como a NFSe será enviada como URL, é necessário configurar a tela de painel fiscal para que aceite URL)
+URL - libera o botão de subir em massa. Endpoint para enviar a nota fiscal de serviço para o lojista. Para todos que possuem a NFSe no formato de URL / O QUE É TELA DE PAINEL FISCAL?";Financeiro
+;conecta_la_api_url;"Precisa direcionar para a URL do ambiente
+https://MKTPLACEapi.conectala.com.br/app";Integração
+;integration_new_module;se estiver ativo vai usar o novo tipo de integração Versão 2 quando criar os jobs de integração do seller com o ERP dele, como VTEX, Bling ou Tiny. Novos sellercenters devem sempre ativar;Integração
+;sale_intermediary_pluggto;" É preenchido quando a plataforma tem integração.
+CNPJ do intermediador da plugtoo";Integração
+;url_anymarket;"Configurado para integrar com anymarket
+http://sandbox-api.anymarket.com.br/marketplace/api/";Integração
+;url_anymarket_prod;"Configurado para integrar com anymarket
+https://api.anymarket.com.br/marketplace/api/";Integração
+;vtex_callback_url;"Recebe a resposta da integração com a Vtex.
+""https://connectpartsapi.conectala.com.br/app/
+https://fibracirurgicateste.conectala.com.br/app/""";Integração
+;vtex_seller_prefix;"Colocar o prefix que vai aparecer na vtex.
+Diferenciar ambiente de teste e prd";Integração
+;freight_module_active_default;"Quando esse parâmetro estiver ativo, sempre que um novo seller for cadastrado o módulo de frete será ativado automaticamente. Quando esse parâmetro estiver ativo, a seção ""Logística"" do cadastro de sellers ficará oculta. Novo Parâmetro -  Ativar correios automaticamente ao cadastrar um novo seller. Qualquer seller center pode ativar, hoje está ativo somente para a Conecta Lá";Logística
+;limit_line_freight_table;Limite de linhas de frete;Logística
+;plp_automatic;Geração de PLP dos Correios automático;Logística
+;quote_default_sellercenter;Sistema de cotação de frete utilizado padrão ex: sgpweb;Logística
+;services_id_sgp;quais serviços disponiveis no SGP  ( sedex , pac , mini ) -  SERA DESCONTINUADO;Logística
+;servicos_permitidos_simulation;Retornar o serviço permitidos para os Correios, Consultar parametro 'servicos_permitidos_simulation' e recuperar se está ativo e ler os serviços.;Logística
+;simulacao_retorna_transportadora;Simulação da VTEX será retornado preço e prazo da tabela de transportadora.	;Logística
+;store_initial_code_module_v2_integration;Ativação do módulo de frete. Sempre deixar ativo.;Logística
+;token_intelipost_sellercenter;Obrigatório inserir token do intelipost se for utilizar.;Logística
+;token_sgp_correios;Obrigatório inserir token do SGP se for utilizar.;Logística
+;token_sgpweb_sellercenter;Obrigatório inserir token do SGP se for utilizar.;Logística
+;days_for_change_password; O valor desse parâmetro deve ser o número máximo de dias até que a senha seja bloqueada por falta de alteração;Onboarding & Produto
+;days_for_warning_change_password; Quantidade de dias de antecedência que começa alertar ao usuário que sua senha irá expirar;Onboarding & Produto
+;description_without_html;"Permite cadastrar html indicado no valor. Usamos o html  “<br />"" para ajustar a quebra de linha na descrição.";Onboarding & Produto
+;detalhamento_desconto_pedidos;Quando ativo, exibe modal de detalhamento de descontos no pedido.;Financeiro
+;detalhamento_taxas_pedidos;Quando ativo, exibe modal de detalhamento de taxas no pedido;Financeiro
+;disable_brand_creation_by_seller;"Se estiver ativo, o lojista não aparecerá o botão de criar fabricante na tela de produto
+Já existe o botão na tela de fabricantes";Onboarding & Produto
+;email_marketing; O valor desse parâmetro deve ser o domínio do e-mail que a plataforma irá utilizar para mandar os e-mails de processo da plataforma (como o e-mail de boas vindas, alerta por pedido pedido, entre outros);Onboarding & Produto
+;group_id_user_seller;PRecisa preencher com os grupos que tem acesso ao formulario de lojista;Onboarding & Produto
+;header_description_shopkeeperform;Mensagem para o seller no mar aberto;Onboarding & Produto
+;id_group_shopkeeperform;Id do grupo que será criado o usuário do lojista ao aprovar o formulário. Caso não informado, o sistema não cria usuário.;Onboarding & Produto
+Inativar categorias em desuso do marketplace;inactivate_sellercenter_category_if_associated_marketplace_category_is_inactive; Quando ativo, Inativa a categoria do sellercenter se a categoria associada no marketplace for inativada;Onboarding & Produto
+;informacoes_tecnicas_vtex;Informações técnicas vindas da Vtex  - Ele não existe em vários ambientes;Onboarding & Produto
+Limite de imagens aceitas por produto;limite_imagens_aceitas_api;Informa o número de imagens aceitas por produto e variação de produto.;Onboarding & Produto
+Exibir logo no Mar Aberto;logotipo_shopkeeperform;Mostra logotipo que vai no mar aberto ;Onboarding & Produto
+Obrigar preço por variação;price_variation; Quando ativo, se torna obrigatório o preenchimento do preço de variação;Onboarding & Produto
+Enviar planilha de produtos por email;product_export_by_queue; Quando ativo, a planilha de produtos , que se encontra na página Produtos > Administrar Produtos, é enviada para o e-mail do solicitante;Onboarding & Produto
+Quantidade Máxima de Caracteres na Descrição do produto;product_length_description; O valor desse parâmetro deve ser o número máximo de caracteres aceitos na descrição do produto;Onboarding & Produto
+Quantidade Máxima de Caracteres no Título do produto;product_length_name; O valor desse parâmetro deve ser o número máximo de caracteres aceitos no título do produto;Onboarding & Produto
+Tags HTML permitidas no produto;products_allowable_tags;Permite enviar os códigos html registrados em valor para vtex.;Onboarding & Produto
+Prefixo do Seller center;sellercenter;Configurar o prefixo do marketplace;Onboarding & Produto
+Nome do seller center;sellercenter_name;Configurar o prefixo do marketplace letras Maiúsculas;Onboarding & Produto
+Valor default de taxa de frete para Mar Aberto;service_charge_freight_shopkeeperform;" Se ativo. define qual o valor a ser utilizado na comissão de frete para criações de novas lojas que vieram através da funcionalidade de ""mar aberto"", ou formulário de lojistas, quando as mesmas são aprovadas ";Onboarding & Produto
+Valor default de taxa de produtos para Mar Aberto;service_charge_value_shopkeeperform;" Se ativo. define qual o valor a ser utilizado na comissão de produtos para criações de novas lojas que vieram através da funcionalidade de ""mar aberto"", ou formulário de lojistas, quando as mesmas são aprovadas";Onboarding & Produto
+Exibir id do pedido no marketplace;show_marketplace_order_id;Se estiver ativo mostra o número do pedido do marketplace na administração do pedido;Onboarding & Produto
+;show_ref_id;Se estiver ativo irá mostrar e permitir pesquisa do Ref_id no modulo de produtos de catálogo;Onboarding & Produto
+;smtp_crypto; Tipo de criptografia utilizada pelo gateway smtp a ser utilizado para envio de emails do sellercenter. Normalmente tls ou ssl ;Onboarding & Produto
+;smtp_host; Nome do host do gateway smtp a ser utilizado para envio de emails do sellercenter;Onboarding & Produto
+;smtp_pass; Senha para conectar no gateway smtp a ser utilizado para envio de emails do sellercenter. ;Onboarding & Produto
+;smtp_port; Porta TCP/IP do gateway smtp a ser utilizado para envio de emails do sellercenter. Normalmente 587 ou 465;Onboarding & Produto
+;smtp_protocol; Protocolo utilizado pelo gateway smtp a ser utilizado para envio de emails do sellercenter. Normalmente smtp;Onboarding & Produto
+;smtp_user; Usuário para se conectar no gateway smtp a ser utilizado para envio de emails do sellercenter. ;Onboarding & Produto
+Integrações V2;stores_module_integration_v2;Define se usa a nossa versão nova das integrações. ;Onboarding & Produto
+Confirmação de preenchimento Mar Aberto;success_description_shopkeeperform;Confirmação de sucesso do formulário preenchido;Onboarding & Produto
+Nova tela de Login;tela_login_banner;Quando campo ativo altera para nova tela de login com Banner;Onboarding & Produto
+Deletar imagens de produtos da Lixeira;deleteImagesProductsTrash;Deleta produtos da lixeira permanentemente após 2 semanas.;Produto
+Nova tela de criação de produtos;view_product_creation;preencher: products/management/create;Produto
+Nova tela de edição de produtos;view_product_edit;preencher: products/management/edit;Produto
+Nova tela de Listagem de Produtos;view_product_listing;preencher: products/management/listing;Produto

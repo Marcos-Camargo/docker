@@ -1,0 +1,29 @@
+.panel-primary {
+    border-color: #0072ab;
+}
+
+.panel-primary>.panel-heading {
+  color: #fff;
+  background-color: #0072ab;
+  border-color: #0072ab;
+}
+
+.treeview.li {
+  color:#0072ab!important;
+}
+
+.menuhref{
+  color:#0072ab;
+}
+ 
+.content-header h1, .content-header>h1>small, .breadcrumb.tree li a{
+  color:#0072ab;
+}
+
+.inner h3, .inner p, a.sidebar-toggle,
+      label, label.normal, th, td, td.sorting_1 a, button.btn.btn-link, .dataTables_info, .btn_clear,
+      label.d-flex.justify-content-between a, span#char_product_name, span#char_description, h4.mb-3,
+     .col-md-1 a, .modal-title, span#char_sku, h4.mt-0, h4.col-md-12.no-padding, tr.odd td a, tr.even a,
+     .box-body h4, li.paginate_button.active {
+         color:#0072ab;
+}

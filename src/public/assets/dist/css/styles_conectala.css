@@ -1,0 +1,11 @@
+
+
+.skin-conectala .sidebar-menu>li.active>a, .skin-conectala .sidebar-menu>li:hover>a {
+    color: #337ab7;
+    background: rgb(232,228,252);
+  }
+
+  .skin-conectala .sidebar-menu .treeview-menu>li.active>a, .skin-conectala .sidebar-menu .treeview-menu>li>a:hover {
+    color: #337ab7;
+    background:rgb(232,228,252);
+  }

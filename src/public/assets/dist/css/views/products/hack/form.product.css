@@ -1,0 +1,132 @@
+h2 {
+    margin-top: 5px;
+}
+
+.form-check,
+.variation-alert {
+    margin-top: 15px;
+}
+
+.file-drop-zone.clearfix .file-preview-thumbnails.clearfix {
+    max-height: 177px;
+    overflow-y: auto;
+}
+
+.file-drop-zone {
+    min-height: unset !important;
+}
+
+.file-preview-thumbnails.clearfix .file-footer-caption .file-caption-info,
+.file-preview-thumbnails.clearfix .file-footer-caption .file-size-info {
+    display: none;
+}
+
+.file-preview-thumbnails.clearfix > div:first-child > div:first-child::before {
+    content: 'Imagem principal';
+    padding: 5px 20px;
+    background: #006cff;
+    color: white;
+    z-index: 999;
+    position: absolute;
+    transform: rotate(-0.12turn);
+    top: 20px;
+    left: -27px;
+    font-size: 12px;
+    clip-path: polygon(20% 0%, 78% 0, 100% 96%, 100% 50%, 100% 100%, 0% 100%);
+}
+
+.krajee-default.file-preview-frame {
+    margin: 6px;
+}
+
+.krajee-default.file-preview-frame .kv-file-content {
+    width: 135px;
+    height: 110px;
+}
+
+.krajee-default.file-preview-frame .file-thumbnail-footer {
+    height: 40px;
+}
+
+.krajee-default .file-footer-caption {
+    margin-bottom: 5px;
+}
+
+.krajee-default .file-thumb-progress {
+    top: 16px;
+}
+
+.krajee-default .file-upload-stats,
+.krajee-default .file-upload-indicator,
+.krajee-default.file-preview-loading.file-uploading .file-actions {
+    display: none;
+}
+
+.krajee-default .file-thumb-progress .progress {
+    margin-bottom: 0px;
+}
+
+.krajee-default .file-thumbnail-footer .file-drag-handle.drag-handle-init {
+    display: none;
+}
+
+.krajee-default.file-drag-handle:hover {
+    cursor: grab;
+}
+
+.form-action-btns .row div[class^="col-"] .row div[class^="col-"] {
+    padding-right: 0px;
+}
+.form-action-btns .row div[class^="col-"] .row div[class*="push"] {
+    padding-right: 15px;
+    padding-left: 0px;
+}
+.form-action-btns button,
+.form-action-btns a {
+    width: 100%;
+}
+
+@media (min-width: 1110px) {
+    .col-person-one {
+        height: auto;
+    }
+}
+
+@media screen and (min-width: 1000px) {
+    .content-wrapper {
+        height: 2000px;
+    }
+    .content-wrapper-edit {
+        height: 2800px;
+    }
+}
+
+@media screen and (max-width: 999px) {
+    .content-wrapper {
+        height: 3330px;
+    }
+
+    .content-wrapper-edit {
+        height: 5640px;
+    }
+    .form-action-btns .row div[class^="col-"] .row div[class^="col-"] {
+        padding-right: 15px;
+        padding-left: 15px;
+        margin-bottom: 5px;
+    }
+}
+
+@media (min-width: 992px){
+    .modal-lg {
+        width: 980px;
+    }
+}
+
+@media screen and (max-width: 542px) {
+    .content-wrapper {
+        height: 3700px;
+    }
+    .content-wrapper-edit {
+        height: 5900px;
+    }
+}

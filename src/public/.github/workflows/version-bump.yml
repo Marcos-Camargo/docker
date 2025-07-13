@@ -1,0 +1,133 @@
+name: Version Bump & Commit Summary on Merge to master
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump and latest tag
+        id: version_bump
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // Itera sobre os commits do push para detectar palavras-chave
+            const commits = context.payload.commits;
+            let featureDetected = false;
+            let hotfixDetected = false;
+            for (const commit of commits) {
+              const msg = commit.message.toLowerCase();
+              if (msg.includes("feature/")) {
+                featureDetected = true;
+              }
+              if (msg.includes("hotfix/")) {
+                hotfixDetected = true;
+              }
+            }
+            console.log("featureDetected:", featureDetected, "hotfixDetected:", hotfixDetected);
+            if (!featureDetected && !hotfixDetected) {
+              console.log("Nenhuma alteração de feature ou hotfix detectada. Encerrando.");
+              return;
+            }
+            // Lista os tags e obtém o último tag
+            const tags = await github.rest.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            if (tags.data.length === 0) {
+              throw new Error("Nenhum tag encontrado no repositório.");
+            }
+            const latestTag = tags.data[0].name;
+            console.log("Último tag:", latestTag);
+            // Aceita tags com ou sem "v" no início
+            const semverRegex = /^v?(\d+)\.(\d+)\.(\d+)$/;
+            const match = latestTag.match(semverRegex);
+            if (!match) {
+              throw new Error("O último tag não segue o formato semver: " + latestTag);
+            }
+            const major = parseInt(match[1]);
+            const minor = parseInt(match[2]);
+            const patch = parseInt(match[3]);
+            let newVersion;
+            if (featureDetected) {
+              newVersion = `v${major}.${minor + 1}.0`;
+            } else if (hotfixDetected) {
+              newVersion = `v${major}.${minor}.${patch + 1}`;
+            }
+            console.log("Nova versão:", newVersion);
+            // Armazena também o último tag para comparação posterior
+            core.setOutput("new_version", newVersion);
+            core.setOutput("latest_tag", latestTag);
+
+      - name: Generate commit summary using git log
+        id: commit_summary
+        run: |
+          LATEST_TAG="${{ steps.version_bump.outputs.latest_tag }}"
+          echo "Latest tag: $LATEST_TAG"
+          # Obtém os commits entre o último tag e o HEAD (apenas as linhas de assunto)
+          COMMIT_LOG=$(git log "$LATEST_TAG"..HEAD --pretty=format:"%s")
+          echo "Commit log:"
+          echo "$COMMIT_LOG"
+          if [ -z "$COMMIT_LOG" ]; then
+            SUMMARY="Nenhum commit de feature ou hotfix identificado."
+          else
+            SUMMARY="$COMMIT_LOG"
+          fi
+          echo -e "Commit summary:\n$SUMMARY"
+          echo "::set-output name=commit_summary::$SUMMARY"
+      
+
+      - name: Create new tag and release
+        id: create_release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const newVersion = '${{ steps.version_bump.outputs.new_version }}';
+            if (!newVersion) {
+              console.log("Nenhuma alteração de versão detectada. Encerrando.");
+              return;
+            }
+            const sha = context.payload.after;
+            console.log("Criando tag", newVersion, "no commit", sha);
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${newVersion}`,
+              sha: sha
+            });
+            console.log("Tag criada com sucesso.");
+            const commitSummary = '${{ steps.commit_summary.outputs.commit_summary }}';
+            const releaseBody = `Release ${newVersion} gerada a partir do merge na branch master.\n\nResumo dos commits:\n${commitSummary}`;
+            const release = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: newVersion,
+              name: newVersion,
+              body: releaseBody,
+              draft: false,
+              prerelease: false
+            });
+            console.log("Release criada com sucesso.");
+            core.setOutput("release_id", release.data.id);
+            return newVersion;
+
+      - name: Deploy para produção (Fake)
+        run: |
+          VERSION=${{ steps.extract_version.outputs.version }}
+          echo "Iniciando deploy da versão $VERSION para produção..."
+          # Aqui você simula o deploy (ex: sleep, comandos de deploy, etc.)
+          sleep 5
+          echo "Deploy da versão $VERSION concluído com sucesso!"

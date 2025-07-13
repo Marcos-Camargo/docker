@@ -1,0 +1,64 @@
+name: Label on Approval
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  label-approval:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Adicionar label "Review Approved" em caso de aprovação
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // Se a revisão foi aprovada:
+            if (context.payload.review.state.toLowerCase() === 'approved') {
+              const pull_number = context.payload.pull_request.number;
+              const labelName = 'Review Approved';
+              const labelColor = '0E8A16'; // verde
+
+              // Verifica se a label já existe
+              let labelExists = true;
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: labelName
+                });
+              } catch (error) {
+                if (error.status === 404) {
+                  labelExists = false;
+                } else {
+                  throw error;
+                }
+              }
+
+              // Cria a label se não existir
+              if (!labelExists) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: labelName,
+                  color: labelColor
+                });
+              }
+
+              // Aplica a label ao PR
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pull_number,
+                labels: [labelName]
+              });
+
+              console.log(`Label "${labelName}" aplicada ao PR #${pull_number}.`);
+            } else {
+              console.log(
+                `Review state: ${context.payload.review.state}. Nenhuma ação tomada.`
+              );
+            }

@@ -1,0 +1,59 @@
+<Resposta DataCriacao="16/03/2022 15:25:42">
+  <Produtos>
+    <Produto codigo="1933" precoDe="129,68" precoPor="49,90" disponibilidade="0" />
+    <Produto codigo="2129" precoDe="269,90" precoPor="249,90" disponibilidade="0" />
+    <Produto codigo="2139" precoDe="299,90" precoPor="251,90" disponibilidade="0" />
+    <Produto codigo="2142" precoDe="109,90" precoPor="109,90" disponibilidade="0" />
+    <Produto codigo="2143" precoDe="175,00" precoPor="109,90" disponibilidade="0" />
+    <Produto codigo="2144" precoDe="127,90" precoPor="127,90" disponibilidade="0" />
+    <Produto codigo="2197" precoDe="439,90" precoPor="439,90" disponibilidade="0" />
+    <Produto codigo="2202" precoDe="449,90" precoPor="439,90" disponibilidade="1" />
+    <Produto codigo="2203" precoDe="449,90" precoPor="439,90" disponibilidade="1" />
+    <Produto codigo="2209" precoDe="200,48" precoPor="129,90" disponibilidade="0" />
+    <Produto codigo="2237" precoDe="179,90" precoPor="179,90" disponibilidade="0" />
+    <Produto codigo="2238" precoDe="212,82" precoPor="179,90" disponibilidade="0" />
+    <Produto codigo="2241" precoDe="54,90" precoPor="54,90" disponibilidade="0" />
+    <Produto codigo="2254" precoDe="99,90" precoPor="99,90" disponibilidade="0" />
+    <Produto codigo="2255" precoDe="99,90" precoPor="99,90" disponibilidade="0" />
+    <Produto codigo="2269" precoDe="1.799,00" precoPor="1.799,00" disponibilidade="0" />
+    <Produto codigo="2270" precoDe="1.799,00" precoPor="1.799,00" disponibilidade="0" />
+    <Produto codigo="2273" precoDe="2.899,00" precoPor="2.299,00" disponibilidade="0" />
+    <Produto codigo="2274" precoDe="2.469,00" precoPor="2.299,00" disponibilidade="0" />
+    <Produto codigo="2275" precoDe="2.799,00" precoPor="2.799,00" disponibilidade="0" />
+    <Produto codigo="2276" precoDe="2.799,00" precoPor="2.799,00" disponibilidade="0" />
+    <Produto codigo="2277" precoDe="79,90" precoPor="79,90" disponibilidade="0" />
+    <Produto codigo="2285" precoDe="97,09" precoPor="89,90" disponibilidade="0" />
+    <Produto codigo="2286" precoDe="119,90" precoPor="89,90" disponibilidade="0" />
+    <Produto codigo="2288" precoDe="79,90" precoPor="79,90" disponibilidade="0" />
+    <Produto codigo="2293" precoDe="219,90" precoPor="219,90" disponibilidade="0" />
+    <Produto codigo="2294" precoDe="64,90" precoPor="64,90" disponibilidade="0" />
+    <Produto codigo="2295" precoDe="64,90" precoPor="64,90" disponibilidade="1" />
+    <Produto codigo="2310" precoDe="99,90" precoPor="99,90" disponibilidade="0" />
+    <Produto codigo="2311" precoDe="99,90" precoPor="99,90" disponibilidade="0" />
+    <Produto codigo="2314" precoDe="119,90" precoPor="119,90" disponibilidade="0" />
+    <Produto codigo="2315" precoDe="119,90" precoPor="119,90" disponibilidade="0" />
+    <Produto codigo="2317" precoDe="328,20" precoPor="319,90" disponibilidade="0" />
+    <Produto codigo="2323" precoDe="89,90" precoPor="89,90" disponibilidade="0" />
+    <Produto codigo="2324" precoDe="99,90" precoPor="89,90" disponibilidade="0" />
+    <Produto codigo="2325" precoDe="69,90" precoPor="69,90" disponibilidade="0" />
+    <Produto codigo="2326" precoDe="69,90" precoPor="69,90" disponibilidade="0" />
+    <Produto codigo="2565" precoDe="113,90" precoPor="99,90" disponibilidade="0" />
+ </Produtos>
+  <Campanhas>
+   <Campanha IdCampanha="2626">
+     <Produto codigo="55026068" precoPor="139,90" disponibilidade="0" />
+      <Produto codigo="55026318" precoPor="169,90" disponibilidade="0" />
+      <Produto codigo="55031472" precoPor="399,90" disponibilidade="0" />
+      <Produto codigo="55031473" precoPor="399,90" disponibilidade="0" />
+      <Produto codigo="55031474" precoPor="618,00" disponibilidade="0" />
+      <Produto codigo="55031475" precoPor="459,90" disponibilidade="0" />
+      <Produto codigo="55031476" precoPor="449,90" disponibilidade="0" />
+      <Produto codigo="55031477" precoPor="549,00" disponibilidade="0" />
+    </Campanha>
+    <Campanha IdCampanha="2627">
+      <Produto codigo="5104" precoPor="93,90" disponibilidade="0" />
+      <Produto codigo="25125" precoPor="329,90" disponibilidade="0" />
+      <Produto codigo="14204845" precoPor="299,00" disponibilidade="0" />
+    </Campanha>
+  </Campanhas>
+</Resposta>

@@ -1,0 +1,331 @@
+name: GMUD produção
+
+on:
+  pull_request:
+    branches: [ "master" ]
+    types: [ opened, reopened, synchronize, edited ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  atualizar-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Verificar se é edição do corpo do PR
+        id: check_event
+        run: |
+          echo "action=${{ github.event.action }}"
+          if [ "${{ github.event.action }}" = "edited" ]; then
+            echo "::set-output name=edited::true"
+          else
+            echo "::set-output name=edited::false"
+          fi
+
+      - name: Verificar alterações de migrations
+        id: check_migrations
+        if: steps.check_event.outputs.edited == 'false'
+        run: |
+          git fetch origin master
+          CHANGED_FILES=$(git diff --name-only origin/master...HEAD)
+          if echo "$CHANGED_FILES" | grep -q '^application/migrations/'; then
+            echo "::set-output name=has_migrations::true"
+          else
+            echo "::set-output name=has_migrations::false"
+          fi
+
+      - name: Aplicar labels do formulário
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pull_number = context.payload.pull_request.number;
+            const prBody = context.payload.pull_request.body || "";
+            const edited = context.payload.action === "edited";
+            let hasMigrations = false;
+            if (!edited) {
+              hasMigrations = '${{ steps.check_migrations.outputs.has_migrations }}' === 'true';
+            }
+            let labelsToAdd = [];
+            if (hasMigrations) {
+              labelsToAdd.push("Migration");
+            }
+            console.log("Labels para adicionar: " + JSON.stringify(labelsToAdd));
+            const labelConfigs = {
+              "Migration": "0E8A16",
+              "Breaking Changes": "5319E7",
+              "Critic": "FF0000",
+              "Normal": "1D76DB",
+              "QA validated": "0E8A16"
+            };
+            async function ensureLabel(label) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label
+                });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label,
+                    color: labelConfigs[label]
+                  });
+                } else {
+                  throw error;
+                }
+              }
+            }
+            for (const label of labelsToAdd) {
+              await ensureLabel(label);
+            }
+            if (labelsToAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pull_number,
+                labels: labelsToAdd
+              });
+            } else {
+              console.log("Nenhuma label para adicionar.");
+            }
+            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pull_number
+            });
+            const currentLabelNames = currentLabels.map(l => l.name);
+            const removableLabels = ["Critic", "Breaking Changes", "QA validated"];
+            for (const label of removableLabels) {
+              if (currentLabelNames.includes(label) && !labelsToAdd.includes(label)) {
+                console.log(`Removendo label: ${label}`);
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pull_number,
+                  name: label
+                });
+              }
+            }
+
+#      - name: Executar teste fake de migrations
+#        id: check_tests
+#        run: |
+#          git fetch origin master
+#          if git diff --name-only origin/master...HEAD | grep -q '^application/migrations/'; then
+#            echo "::set-output name=testResult::passed"
+#          else
+#            echo "::set-output name=testResult::failed"
+#          fi
+
+#      - name: Atualizar labels de teste
+#        uses: actions/github-script@v6
+#        with:
+#          script: |
+#            const pull_number = context.payload.pull_request.number;
+#            const testResult = '${{ steps.check_tests.outputs.testResult }}';
+#            console.log("Resultado do teste fake: " + testResult);
+#            const labelConfigs = {
+#              "Tests Passed": "0E8A16",
+#              "Tests Failed": "FF0000"
+#            };
+#            let labelToAdd, labelToRemove;
+#            if (testResult === 'passed') {
+#              labelToAdd = "Tests Passed";
+#              labelToRemove = "Tests Failed";
+#            } else {
+#              labelToAdd = "Tests Failed";
+#              labelToRemove = "Tests Passed";
+#            }
+#            async function ensureLabel(label) {
+#              try {
+#                await github.rest.issues.getLabel({
+#                  owner: context.repo.owner,
+#                  repo: context.repo.repo,
+#                  name: label
+#                });
+#              } catch (error) {
+#                if (error.status === 404) {
+#                  await github.rest.issues.createLabel({
+#                    owner: context.repo.owner,
+#                    repo: context.repo.repo,
+#                    name: label,
+#                    color: labelConfigs[label]
+#                  });
+#                } else {
+#                  throw error;
+#                }
+#              }
+#            }
+#            await ensureLabel(labelToAdd);
+#            if ([labelToAdd].length > 0) {
+#              await github.rest.issues.addLabels({
+#                owner: context.repo.owner,
+#                repo: context.repo.repo,
+#                issue_number: pull_number,
+#                labels: [ labelToAdd ]
+#              });
+#            }
+#            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+#              owner: context.repo.owner,
+#              repo: context.repo.repo,
+#              issue_number: pull_number
+#            });
+#            const currentLabelNames = currentLabels.map(label => label.name);
+#            if (currentLabelNames.includes(labelToRemove)) {
+#              await github.rest.issues.removeLabel({
+#                owner: context.repo.owner,
+#                repo: context.repo.repo,
+#                issue_number: pull_number,
+#                name: labelToRemove
+#              });
+#            }
+#            if (testResult === 'failed') {
+#              throw new Error("Fake tests failed.");
+#            }
+
+#      - name: Solicitar aprovação automática e atribuição
+#        if: steps.check_tests.outputs.testResult == 'passed'
+#        uses: actions/github-script@v6
+#        with:
+#          script: |
+#            const pull_number = context.payload.pull_request.number;
+#            const pr = context.payload.pull_request;
+#            if (pr.requested_reviewers && pr.requested_reviewers.length > 0) {
+#              console.log("Já existe um revisor designado. Nenhuma ação tomada.");
+#              return;
+#            }
+#            const reviewersList = ["dilneiss", "dilneiconectala"];
+#            const prAuthor = pr.user.login;
+#            const filteredReviewers = reviewersList.filter(rev => rev !== prAuthor);
+#            if (filteredReviewers.length === 0) {
+#              console.log("Não há revisores disponíveis que não sejam o autor do PR.");
+#              return;
+#            }
+#            const selectedReviewer = filteredReviewers[Math.floor(Math.random() * filteredReviewers.length)];
+#            console.log(`Revisor selecionado: ${selectedReviewer}`);
+#            await github.rest.pulls.requestReviewers({
+#              owner: context.repo.owner,
+#              repo: context.repo.repo,
+#              pull_number: pull_number,
+#              reviewers: [selectedReviewer]
+#            });
+#            await github.rest.issues.addAssignees({
+#              owner: context.repo.owner,
+#              repo: context.repo.repo,
+#              issue_number: pull_number,
+#              assignees: [selectedReviewer, prAuthor]
+#            });
+
+      - name: Redirect Hotfix/Feature PR to Develop
+        if: startsWith(github.event.pull_request.head.ref, 'hotfix') || startsWith(github.event.pull_request.head.ref, 'feature')
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const originalPR = context.payload.pull_request;
+            console.log("PR original #" + originalPR.number);
+
+            // Verifica se já existe um PR aberto com o mesmo head para a branch develop
+            const existingPRs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              head: `${context.repo.owner}:${originalPR.head.ref}`,
+              base: "develop"
+            });
+            if (existingPRs.data.length > 0) {
+              console.log("Já existe um PR para develop com esse head. Nenhuma ação tomada.");
+              return;
+            }
+
+            // Verifica se há commits entre a branch atual e develop antes de criar o PR
+            try {
+              const compareResponse = await github.rest.repos.compareCommits({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                base: "develop",
+                head: originalPR.head.ref
+              });
+
+              if (compareResponse.data.commits.length === 0) {
+                console.log("Nenhuma diferença entre develop e " + originalPR.head.ref + ". PR não pode ser criado.");
+
+                // Comenta no PR original informando o problema
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: originalPR.number,
+                  body: `⚠️ Não foi possível criar um PR para develop porque não há diferenças entre develop e ${originalPR.head.ref}.`
+                });
+
+                return;
+              }
+            } catch (error) {
+              console.error("Erro ao comparar branches:", error);
+              return;
+            }
+
+            // Cria o PR para develop com corpo contendo apenas o link do PR original
+            const newPR = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: originalPR.title,
+              head: originalPR.head.ref,
+              base: "develop",
+              body: `Pull Request para master: ${originalPR.html_url}`
+            });
+            core.setOutput("newPRUrl", newPR.data.html_url);
+            core.setOutput("newPRNumber", newPR.data.number.toString());
+            core.setOutput("originalPRUrl", originalPR.html_url);
+
+            // Obter detalhes atualizados do PR original para extrair revisores e assignees
+            const originalPRDetails = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: originalPR.number
+            });
+            const prData = originalPRDetails.data;
+            const originalReviewers = prData.requested_reviewers ? prData.requested_reviewers.map(r => r.login) : [];
+            const originalAssignees = prData.assignees ? prData.assignees.map(a => a.login) : [];
+            console.log("Revisores originais: " + JSON.stringify(originalReviewers));
+            console.log("Assignees originais: " + JSON.stringify(originalAssignees));
+
+            // Adiciona os mesmos revisores ao novo PR, se houver
+            if (originalReviewers.length > 0) {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: newPR.data.number,
+                reviewers: originalReviewers
+              });
+            }
+
+            // Atribui os mesmos assignees no novo PR
+            if (originalAssignees.length > 0) {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: newPR.data.number,
+                assignees: originalAssignees
+              });
+            }
+
+            // Comenta no PR original com o link do PR para develop
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: originalPR.number,
+              body: `Pull Request para Develop: ${newPR.data.html_url}`
+            });
+
+            console.log("Redirecionamento para develop concluído.");
+      
+      

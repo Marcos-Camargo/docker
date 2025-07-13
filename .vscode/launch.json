@@ -1,0 +1,56 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Para escutar requisições vindas de um servidor (ex: Apache, Nginx ou PHP embutido via Docker)
+      "name": "Listen for Xdebug",
+      "type": "php",
+      "request": "launch",
+      "port": 9003,
+      "log": true,
+      "pathMappings": {
+        "/var/www/html/public": "${workspaceFolder}/src/public"
+      }
+    },
+    {
+      // Para rodar scripts PHP diretamente do terminal do VSCode
+      "name": "Launch currently open script",
+      "type": "php",
+      "request": "launch",
+      "program": "${file}",
+      "cwd": "${fileDirname}",
+      "port": 9003,
+      "runtimeArgs": [
+        "-dxdebug.start_with_request=yes"
+      ],
+      "env": {
+        "XDEBUG_MODE": "debug,develop",
+        "XDEBUG_CONFIG": "client_host=host.docker.internal client_port=9003"
+      },
+      "log": true
+    },
+    {
+      // Para iniciar o servidor PHP embutido e depurar via navegador
+      "name": "Launch Built-in web server",
+      "type": "php",
+      "request": "launch",
+      "runtimeArgs": [
+        "-dxdebug.mode=debug",
+        "-dxdebug.start_with_request=yes",
+        "-S",
+        "localhost:8000",
+        "-t",
+        "src/public"
+      ],
+      "program": "",
+      "cwd": "${workspaceFolder}",
+      "port": 9003,
+      "serverReadyAction": {
+        "pattern": "Development Server \\(http://localhost:([0-9]+)\\) started",
+        "uriFormat": "http://localhost:%s",
+        "action": "openExternally"
+      },
+      "log": true
+    }
+  ]
+}

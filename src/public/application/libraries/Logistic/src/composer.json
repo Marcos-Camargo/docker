@@ -1,0 +1,20 @@
+{
+  "description": "Logistic Package",
+  "name": "conectala/logistic",
+  "type": "project",
+  "license": "MIT",
+  "config": {
+    "vendor-dir": "../vendor"
+  },
+  "autoload": {
+    "psr-4": {
+    },
+    "classmap": [
+      "Services",
+      "Repositories",
+      "../../Microservices"
+    ],
+    "files": [
+    ]
+  }
+}

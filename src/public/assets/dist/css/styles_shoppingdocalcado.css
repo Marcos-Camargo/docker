@@ -1,0 +1,188 @@
+.fundo-login{
+    background-color: #FFFFFF!important;
+  }
+  
+  .btn-primary {
+    color: #F4F1EC;
+    background-color: #000000;
+    border-color: #000000;
+  }
+  .btn-primary:hover {
+    color: rgb(244, 241, 236);
+    background-color: rgb(83, 86, 90);
+    border-color: rgb(237, 239, 236);
+  }
+  
+  .btn>.btn-lg>.btn-primary>.btn-block {
+    background-color: #000000;
+    border-color: #000000;
+  }
+  
+  .btn-primary:active:hover,
+  .btn-primary.active:hover,
+  .open > .dropdown-toggle.btn-primary:hover,
+  .btn-primary:active:focus,
+  .btn-primary.active:focus,
+  .open > .dropdown-toggle.btn-primary:focus,
+  .btn-primary:active.focus,
+  .btn-primary.active.focus,
+  .open > .dropdown-toggle.btn-primary.focus {
+    color: #F4F1EC;
+    background-color: #000000;
+    border-color: #F4F1EC;
+  }
+  
+  .bg-blue {
+    background-color: #000000 !important;
+  }
+  
+  .skin-conectala .sidebar-menu>li.active>a, .skin-conectala .sidebar-menu>li:hover>a {
+    color: #000000;
+    background: #d2d6de;
+  }
+  
+  .skin-conectala .sidebar-menu .treeview-menu>li>a {
+    color: #000000;
+  }
+  
+  .skin-conectala .sidebar-menu .treeview-menu>li.active>a, .skin-conectala .sidebar-menu .treeview-menu>li>a:hover {
+    color: rgba(237, 28, 35, 0.925);
+  }
+  
+  .skin-conectala {
+    color: #000000;
+  }
+  
+  a:hover, a:active, a:focus {
+    outline: none;
+    text-decoration: none;
+    color: #000000;
+  }
+  
+  .pagination>.active>a, .pagination>.active>a:focus, .pagination>.active>a:hover, .pagination>.active>span, .pagination>.active>span:focus, .pagination>.active>span:hover {
+    z-index: 3;
+    color: #F4F1EC;
+    cursor: default;
+    background-color: #d2d6de;
+    border-color: #F4F1EC;
+  }
+  
+  .pagination>li>a {
+    background: #F4F1EC;
+    color: #000000;
+  }
+  
+  .pagination>.disabled>a, .pagination>.disabled>a:focus, .pagination>.disabled>a:hover, .pagination>.disabled>span, .pagination>.disabled>span:focus, .pagination>.disabled>span:hover {
+    color: #000000;
+    cursor: not-allowed;
+    background-color: #F4F1EC;
+    /* border-color: #8D6742; */
+  }
+  
+  .content-wrapper {
+    background-color: #ffffff  !important;
+  }
+  
+  .body-black-friday .sidebar-menu>li>.treeview-menu {
+    background-color: #000000 !important;
+  }
+  
+  .content-header
+  {
+    background-color: #ffffff !important;
+  }
+  
+  .content-header>h1, .content-header>h1>small, .content-header>.breadcrumb>li>a
+  {
+    color: #000000 !important;
+  }
+  
+  .content-header>h1, .content-header>h1>small, .content-header>.breadcrumb>li>a>i.fa
+  {
+    color: #000000 !important;
+  }
+  
+  .skin-conectala .card-body {
+    color: #000000;
+  }
+  
+  .skin-conectala .box.box-primary{
+    border-top-color: #000000 !important;
+  }
+  
+  .skin-conectala .box-body .pagination>li>a{
+    color: #000000 !important;
+  }
+  
+  .skin-conectala .box-body .panel-primary{
+    border-color: #000000  !important;
+  }
+  
+  .skin-conectala .box-body .panel-primary>.panel-heading{
+    background-color: #000000 ;
+    border-color: #000000 ;
+  }
+  
+  .skin-conectala .box-body .pagination .pagination_button>.active>li>a:hover{
+    color: #ffffff!important;
+  }
+  
+  .main-sidebar, header .logo {
+    border-right: 1px solid #d2d6de !important;
+  }
+  
+  .skin-conectala>.box {
+    color: #ffffff ;
+  }
+  
+  .panel-collapse>h4 {
+    color: #ffffff;
+  }
+  
+  a:hover, a:active, a:focus {
+    outline: none;
+    text-decoration: none;
+    color: #000000;
+  }
+  
+  a {
+    color: #000000;
+  }
+  
+  .bg-blue {
+    background-color: #000000 !important;
+  }
+  
+  .fundo-login .loginForm .form-group button{
+    color: #F4F1EC;
+    background-color: #000000;
+    border-color: #000000;
+  }
+  
+  
+  .fundo-login .loginForm .form-group button:hover{
+  color: #F4F1EC;
+  background-color: rgb(83, 86, 90);
+  border-color: #d2d6de;
+  }
+  
+  .fundo-login{
+    background-color: #000000!important;
+  }
+  
+  
+  .main-header .sidebar-toggle {
+    color: #000000 !important;
+  }
+  
+  .small-box.bg-blue-light {
+    color: #000000;
+  }
+  
+  .small-box.bg-blue-light i:not(.fa-arrow-circle-right) {
+    color: #d2d6de;
+  }
+  
+  .box-primary {
+    border-top-color: #000000 !important;
+  }

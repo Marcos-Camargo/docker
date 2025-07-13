@@ -1,0 +1,214 @@
+.fundo-login{
+  background-color: rgb(0, 0, 0) !important;
+}
+
+.btn-primary:active:hover ,
+.btn-primary.active:hover,
+.open > .dropdown-toggle.btn-primary:hover,
+.btn-primary:active:focus,
+.btn-primary.active:focus,
+.open > .dropdown-toggle.btn-primary:focus,
+.btn-primary:active.focus,
+.btn-primary.active.focus,
+.open > .dropdown-toggle.btn-primary.focus {
+  color: #F4F1EC;
+  background-color: rgb(160, 0, 0);
+  border-color: #F4F1EC;
+}
+
+.btn-primary {
+  color: rgb(244, 241, 236);
+  background-color: rgb(160, 0, 0);
+  border-color: rgb(255, 0, 0);
+}
+.btn-primary:hover {
+  color: rgb(244, 241, 236);
+  background-color: rgb(255, 0, 0);
+  border-color: rgb(160, 0, 0);
+}
+
+.btn-infox {
+  color: rgb(244, 241, 236);
+  background-color: rgb(19, 41, 75);
+  border-color: rgb(252, 178, 163);
+}
+.btn-infox:hover {
+  color: rgb(244, 241, 236);
+  background-color: rgb(28, 57, 100);
+  border-color: rgb(34, 55, 43);
+}
+
+.btn-successx {
+  color: rgb(244, 241, 236);
+  background-color: rgb(34, 55, 43);
+  border-color: rgb(252, 178, 163);
+}
+.btn-successx:hover {
+  color: rgb(244, 241, 236);
+  background-color: rgb(0, 0, 1);
+  border-color: rgb(34, 55, 43);
+}
+
+.btn-dangerx {
+  color: rgb(244, 241, 236);
+  background-color: rgb(160, 0, 0);
+  border-color: rgb(255, 0, 0);
+}
+.btn-dangerx:hover {
+  color: rgb(244, 241, 236);
+  background-color: rgb(255, 0, 0);
+  border-color: rgb(34, 55, 43);
+}
+
+.bg-blue {
+    background-color: rgb(0, 0, 0) !important;
+}
+
+.skin-conectala .sidebar-menu>li.active>a, .skin-conectala .sidebar-menu>li:hover>a {
+  color: rgb(255, 255, 255);
+  background: rgb(0, 0, 0);
+}
+
+.skin-conectala .sidebar-menu .treeview-menu>li>a {
+  color: rgb(0, 0, 0);
+}
+
+.skin-conectala .sidebar-menu .treeview-menu>li.active>a, .skin-conectala .sidebar-menu .treeview-menu>li>a:hover {
+  color: rgb(255, 255, 255);
+  background: rgb(0, 0, 0);
+}
+
+.skin-conectala {
+  color: rgb(0, 0, 0);
+}
+
+a:hover, a:active, a:focus {
+  outline: none;
+  text-decoration: none;
+  color: rgb(0, 0, 0);
+}
+
+.pagination>.active>a, .pagination>.active>a:focus, .pagination>.active>a:hover, .pagination>.active>span, .pagination>.active>span:focus, .pagination>.active>span:hover {
+  z-index: 3;
+  color: rgb(244, 241, 236);
+  cursor: default;
+  background-color: rgb(160, 0, 0);
+  border-color: rgb(244, 241, 236);
+}
+
+.pagination>li>a {
+  background: rgb(244, 241, 236);
+  color: rgb(0, 0, 0);
+}
+
+.pagination>.disabled>a, .pagination>.disabled>a:focus, .pagination>.disabled>a:hover, .pagination>.disabled>span, .pagination>.disabled>span:focus, .pagination>.disabled>span:hover {
+  color: rgb(120, 0, 0)2;
+  cursor: not-allowed;
+  background-color: rgb(244, 241, 236);
+  /* border-color: #8D6742; */
+}
+
+.content-wrapper {
+  
+   background-color: rgb(250, 225, 220); 
+
+  /* background-color: rgb(90, 0, 0); */
+}
+
+.body-black-friday .sidebar-menu>li>.treeview-menu {
+/*background-color: rgb(255, 0, 0) !important; */
+background-color: rgb(250, 225, 220) !important; 
+}
+
+.content-header
+{
+background-color: rgb(0, 0, 0);
+}
+
+.content-header>h1, .content-header>h1>small, .content-header>.breadcrumb>li>a
+{
+/*color: #F4F1EC !important; */
+color:rgb(0, 0, 0) !important;
+}
+
+.content-header>h1, .content-header>h1>small, .content-header>.breadcrumb>li>a>i.fa
+{
+/* color: #F4F1EC !important; */
+color:rgb(0, 0, 0) !important;
+}
+
+.skin-conectala .card-body {
+color: rgb(250, 225, 220);
+/* color: rgb(160, 0, 0); */
+}
+
+.skin-conectala .box-body .normal{
+  color: rgb(250, 225, 220) !important; 
+/* color: rgb(160, 0, 0) !important; */
+}
+
+.main-header .sidebar-toggle {
+color: #F4F1EC;
+}
+
+.skin-conectala .normal {
+color: #F4F1EC;
+}
+
+.skin-conectala>.box {
+color: #F4F1EC ;
+}
+
+.panel-collapse>h4 {
+color: #F4F1EC;
+}
+
+a:hover, a:active, a:focus {
+outline: none;
+text-decoration: none;
+color: hsl(0, 0%, 0%);
+}
+
+a {
+color: rgb(0, 0, 0);
+}
+
+/*
+.bg-blue {
+background-color: rgb(255, 0, 0);
+}
+*/
+
+.fundo-login .loginForm .form-group button{
+  color: rgb(244, 241, 236);
+  background-color: rgba(255, 0, 0,1);
+  border-color: rgb(252, 178, 163);
+}
+
+
+.fundo-login .loginForm .form-group button:hover{
+  color: rgb(244, 241, 236);
+  background-color: rgb(255, 0, 0);
+  border-color: rgba(255, 0, 0,1);
+}
+
+.content-header>.breadcrumb>li::before
+{
+color: #F4F1EC !important;
+}
+
+.content-header>.breadcrumb>li
+{
+  color: #F4F1EC !important;
+}
+
+.box-primary {
+  border-top-color: rgb(255, 0, 0) !important;
+}
+
+
+@media print {
+  *, :after, :before {
+    background-color: #fff !important;
+  }
+}

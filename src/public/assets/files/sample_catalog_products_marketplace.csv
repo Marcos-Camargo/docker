@@ -1,0 +1,4 @@
+ID da Loja;Catalogo;EAN Produto de Catalogo;Fabricante;Sku do Parceiro;Quantidade em estoque;Limite Desconto(%);Status(0=Inativo|1=Ativo)
+15;Catalogo Marketplace;Marca Teste;7891129184999;P_001;19;25;1
+15;Catalogo Marketplace;Marca Teste;7891129184999;P_002;10;50;1
+15;Catalogo Marketplace;Marca Teste;7891129184999;P_003;23;30;1

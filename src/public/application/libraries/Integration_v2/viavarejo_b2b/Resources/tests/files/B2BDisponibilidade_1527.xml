@@ -1,0 +1,17 @@
+<Resposta DataCriacao="16/03/2022 15:25:42">
+  <Produtos>
+    <Produto codigo="1933" precoDe="129,68" precoPor="49,90" disponibilidade="0" />
+    <Produto codigo="2129" precoDe="269,90" precoPor="249,90" disponibilidade="0" />
+ </Produtos>
+  <Campanhas>
+   <Campanha IdCampanha="2626">
+     <Produto codigo="55026068" precoPor="139,90" disponibilidade="0" />
+      <Produto codigo="55026318" precoPor="169,90" disponibilidade="0" />
+    </Campanha>
+    <Campanha IdCampanha="2627">
+      <Produto codigo="5104" precoPor="93,90" disponibilidade="0" />
+      <Produto codigo="25125" precoPor="329,90" disponibilidade="0" />
+      <Produto codigo="14204845" precoPor="299,00" disponibilidade="0" />
+    </Campanha>
+  </Campanhas>
+</Resposta>

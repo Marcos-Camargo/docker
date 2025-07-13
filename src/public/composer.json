@@ -1,0 +1,70 @@
+{
+  "description": "The CodeIgniter framework",
+  "name": "codeigniter/framework",
+  "type": "project",
+  "homepage": "https://codeigniter.com",
+  "license": "MIT",
+  "support": {
+    "forum": "http://forum.codeigniter.com/",
+    "wiki": "https://github.com/bcit-ci/CodeIgniter/wiki",
+    "slack": "https://codeigniterchat.slack.com",
+    "source": "https://github.com/bcit-ci/CodeIgniter"
+  },
+  "require": {
+    "php": "^7.2",
+    "firebase/php-jwt": "^5.2",
+    "league/csv": "^9.6",
+    "lcobucci/jwt": "^3.3",
+    "ipeevski/metabase-php": "^0.2.4",
+    "ext-json": "*",
+    "ext-curl": "*",
+    "picqer/php-barcode-generator": "^2.0",
+    "intervention/image": "^2.6",
+    "guzzlehttp/guzzle": "^7.0",
+    "ext-simplexml": "*",
+    "ext-dom": "*",
+    "jumbojett/openid-connect-php": "^0.9.10",
+    "hitrov/oci-api-php-request-sign": "^1.2",
+    "nesbot/carbon": "^2.73",
+    "symfony/cache": "^5.4",
+    "unleash/client": "^2.8",
+    "phpmailer/phpmailer": "^6.9",
+    "predis/predis": "1.1",
+    "sentry/sdk": "^3.5"
+  },
+  "suggest": {
+    "paragonie/random_compat": "Provides better randomness in PHP 5.x"
+  },
+  "require-dev": {
+    "mikey179/vfsstream": "1.1.*",
+    "phpunit/phpunit": "9.5",
+    "symfony/var-dumper": "^5.4",
+    "dilneiss/kint": "^3.3",
+    "friendsofphp/php-cs-fixer": "^3.0"
+  },
+  "config": {
+    "vendor-dir": "vendor",
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "test:coverage": "phpunit --coverage-text",
+    "test:coverage-html": "phpunit --coverage-html tests/coverage",
+    "cs:check": "php-cs-fixer fix --dry-run --diff",
+    "cs:fix": "php-cs-fixer fix"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "application/",
+      "App\\Libraries\\": "application/libraries/",
+      "App\\Jobs\\": "application/Jobs/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  }
+}

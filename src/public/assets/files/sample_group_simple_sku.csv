@@ -1,0 +1,6 @@
+ID da Loja;Sku do novo produto pai;Sku do produto simples no seller center;Cor;Tamanho;Voltagem;Sabor
+1;NOVO_001;P_001;Preto;;;
+1;NOVO_001;P_002;Branco;;;
+1;NOVO_001;P_003;Azul;;;
+1;NOVO_002;P_010;;;110v;
+1;NOVO_002;P_011;;;220v;
