@@ -3757,11 +3757,40 @@ class CalculoFrete {
                 'items'            => $items,
             ];
 
-            $this->instanceLogistic($logisticType, $storeId, $dataQuote, $freightSeller);
-            $logistic = $this->logistic;
+            $result = null;
+            try {
+                $this->instanceLogistic($logisticType, $storeId, $dataQuote, $freightSeller);
+                $logistic = $this->logistic;
+                $result = $logistic->getQuote($dataQuote, false);
+            } catch (Exception $e) {
+                get_instance()->log_data('batch', $log_name,
+                    "Falha ao cotar com logística {$logisticType}: " . $e->getMessage(), 'E');
 
-            // Executar cotação com parâmetros corretos
-            $result = $logistic->getQuote($dataQuote, false);
+                try {
+                    get_instance()->log_data('batch', $log_name,
+                        'Tentando fallback TableInternal', 'I');
+
+                    $this->instanceLogistic('TableInternal', $storeId, $dataQuote, $freightSeller);
+                    $logistic = $this->logistic;
+                    $result = $logistic->getQuote($dataQuote, false);
+
+                    get_instance()->log_data('batch', $log_name,
+                        'Fallback TableInternal executado', 'I');
+                } catch (Exception $fallbackException) {
+                    get_instance()->log_data('batch', $log_name,
+                        'Falha no fallback TableInternal: ' . $fallbackException->getMessage(), 'E');
+
+                    $executionTime = microtime(true) - $time_start;
+                    return [
+                        'success' => false,
+                        'data' => [
+                            'message' => 'Erro interno na cotação: ' . $fallbackException->getMessage(),
+                            'execution_time' => round($executionTime, 3),
+                            'execution_mode' => 'traditional_error'
+                        ]
+                    ];
+                }
+            }
             
             // Verificar se resultado é válido
             if (!is_array($result)) {
