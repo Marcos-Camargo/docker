@@ -150,6 +150,25 @@ class Correios extends Logistic
      */
     public function getQuote(array $dataQuote, bool $moduloFrete = false): array
     {
+        if (!isset(
+            $dataQuote['zipcodeSender'],
+            $dataQuote['zipcodeRecipient'],
+            $dataQuote['items'],
+            $dataQuote['dataInternal']
+        ) || !is_array($dataQuote['items'])) {
+            throw new InvalidArgumentException('Dados de cotação incompletos');
+        }
+
+        foreach ($dataQuote['items'] as $item) {
+            if (!isset(
+                $item['peso'], $item['valor'], $item['quantidade'],
+                $item['largura'], $item['altura'], $item['comprimento'],
+                $item['sku'], $item['skuseller']
+            )) {
+                throw new InvalidArgumentException('Item da cotação inválido');
+            }
+        }
+
         $dataFreight = array();
         $smallestMeasure = array();
         $arrSkuProductId = array();
