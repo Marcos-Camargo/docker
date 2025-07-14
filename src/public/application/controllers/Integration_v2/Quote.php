@@ -64,25 +64,7 @@ class Quote extends Admin_Controller
             return $this->output->set_output(json_encode(array('error' => "quantity deve ser maior que zero."),JSON_UNESCAPED_UNICODE));
         }
 
-        $logistic = $this->calculofrete->getLogisticStore(array(
-            'store_id' => $store_id
-        ));
-
-        $this->calculofrete->instanceLogistic($logistic['type'], $store_id, [], $logistic['seller']);
-
-        // Consultar dados da loja
-        // Consultar dados do sku
-
-        $store   = $this->model_stores->getStoresData($store_id);
-
-        $dataQuote = array(
-            'zipcodeRecipient' => $zipcode,
-            'zipcodeSender' => $store['zipcode'],
-            'crossDocking' => 0,
-            'items' => array(),
-            'dataInternal' => array()
-        );
-
+        $items = [];
         $equals_sku = [];
         foreach ($skus as $key => $sku) {
             $quantity = $quantities[$key] ?? 0;
@@ -100,46 +82,46 @@ class Quote extends Admin_Controller
             }
 
             $equals_sku[] = $sku;
-
-            $product = $this->model_products->getProductBySkuAndStore($sku, $store_id);
-            // Tentar encontrar pela variação.
-            if (!$product) {
-                $product = $this->model_products->getProductsBySkuVariantAndStore($sku, $store_id);
-                if (!$product) {
-                    return $this->output->set_output(json_encode(array('error' => "sku não localizado"),JSON_UNESCAPED_UNICODE));
-                }
-
-                // Alterar preço. @todo alterar método para pegar o preço na consulta.
-                $variant = $this->model_products->getVariantsByProd_idAndVariant($product['id'], $product['variant']);
-                $product['price'] = $variant['price'];
-                $product['list_price'] = $variant['list_price'];
-                $product['qty'] = $variant['qty'];
-            }
-
-            $dataQuote['items'][] = array(
-                'skuseller'     => $sku,
-                'quantidade'    => $quantity,
-                'sku'           => $sku,
-                'valor'         => $product['price'],
-                'comprimento'   => $product['profundidade'] / 100, // Precisa dividir por 100.
-                'largura'       => $product['largura'] / 100, // Precisa dividir por 100.
-                'altura'        => $product['altura'] / 100, // Precisa dividir por 100.
-                'peso'          => $product['peso_bruto'],
-                'tipo'          => 999,
-                'variant'       => $product['variant'] ?? null
+            $items[] = array(
+                'sku' => $sku,
+                'qty' => $quantity,
+                'seller' => $store_id
             );
-            $dataQuote['dataInternal'][$sku] = array(
-                'CNPJ'      => $store['CNPJ'],
-                'prd_id'    => $sku,
-                'qty_atual' => $product['qty']
+        }
+
+        $mkt = array('platform' => 'SC', 'channel' => 'SC');
+        $columns = $this->calculofrete->getColumnsMarketplace($mkt['platform']);
+        $dataRecipient = $this->calculofrete->lerCep($zipcode) ?: array();
+
+        try {
+            $validation = $this->calculofrete->validItemsQuote(
+                $items,
+                $mkt,
+                $columns['table'],
+                $columns['qty'],
+                true,
+                $zipcode,
+                $dataRecipient
             );
+        } catch (Exception $e) {
+            return $this->output->set_output(json_encode(array('error' => $e->getMessage()), JSON_UNESCAPED_UNICODE));
+        }
+
+        $dataQuote = $validation['dataQuote'];
+        $storeId = $validation['storeId'];
+        $logistic = $validation['logistic'];
+
+        try {
+            $this->calculofrete->instanceLogistic($logistic['type'], $storeId, $dataQuote, $logistic['seller']);
+        } catch (Exception $e) {
+            return $this->output->set_output(json_encode(array('error' => 'Erro ao instanciar logística: ' . $e->getMessage()), JSON_UNESCAPED_UNICODE));
         }
 
         try {
             if ($debug) {
                 $this->calculofrete->logistic->setDebug(true);
             }
-            $response = $this->calculofrete->logistic->getQuote($dataQuote, true);
+            $response = $this->calculofrete->logistic->getQuote($dataQuote, false);
 
             $this->calculofrete->_time_end = microtime(true) * 1000;
             $response_time = array('request_time' => $this->calculofrete->_time_end - $this->calculofrete->_time_start);
