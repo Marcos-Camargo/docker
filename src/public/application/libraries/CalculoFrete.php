@@ -3752,16 +3752,43 @@ class CalculoFrete {
             $logisticType = $integration ?: 'TableInternal';
             $freightSeller = $integration ? true : false;
 
-            $dataQuote = [
-                'zipcodeRecipient' => $zipcode,
-                'items'            => $items,
-            ];
+            if (is_array($this->validationResult) &&
+                isset(
+                    $this->validationResult['dataQuote'],
+                    $this->validationResult['cross_docking'],
+                    $this->validationResult['zipCodeSeller'],
+                    $this->validationResult['arrDataAd']
+                )) {
+                // Aproveita dados já validados na etapa inicial
+                $dataQuote = $this->validationResult['dataQuote'];
+                $dataQuote['crossDocking']  = $this->validationResult['cross_docking'];
+                $dataQuote['zipcodeSender'] = $this->validationResult['zipCodeSeller'];
+                $dataQuote['dataInternal']  = $this->validationResult['arrDataAd'];
+            } else {
+                $dataQuote = [
+                    'zipcodeRecipient' => $zipcode,
+                    'items'            => $items,
+                ];
+            }
 
             $result = null;
             try {
                 $this->instanceLogistic($logisticType, $storeId, $dataQuote, $freightSeller);
                 $logistic = $this->logistic;
                 $result = $logistic->getQuote($dataQuote, false);
+            } catch (InvalidArgumentException $e) {
+                get_instance()->log_data('batch', $log_name,
+                    'Falha de validação na cotação: ' . $e->getMessage(), 'E');
+
+                $executionTime = microtime(true) - $time_start;
+                return [
+                    'success' => false,
+                    'data' => [
+                        'message' => 'Erro na validação dos dados de cotação: ' . $e->getMessage(),
+                        'execution_time' => round($executionTime, 3),
+                        'execution_mode' => 'traditional_error'
+                    ]
+                ];
             } catch (Exception $e) {
                 get_instance()->log_data('batch', $log_name,
                     "Falha ao cotar com logística {$logisticType}: " . $e->getMessage(), 'E');
@@ -3776,6 +3803,19 @@ class CalculoFrete {
 
                     get_instance()->log_data('batch', $log_name,
                         'Fallback TableInternal executado', 'I');
+                } catch (InvalidArgumentException $fallbackException) {
+                    get_instance()->log_data('batch', $log_name,
+                        'Falha no fallback TableInternal: ' . $fallbackException->getMessage(), 'E');
+
+                    $executionTime = microtime(true) - $time_start;
+                    return [
+                        'success' => false,
+                        'data' => [
+                            'message' => 'Erro interno na cotação: ' . $fallbackException->getMessage(),
+                            'execution_time' => round($executionTime, 3),
+                            'execution_mode' => 'traditional_error'
+                        ]
+                    ];
                 } catch (Exception $fallbackException) {
                     get_instance()->log_data('batch', $log_name,
                         'Falha no fallback TableInternal: ' . $fallbackException->getMessage(), 'E');
