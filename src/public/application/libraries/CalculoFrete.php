@@ -3736,11 +3736,22 @@ class CalculoFrete {
                 ];
             }
             
-            // Instanciar Logistic com parâmetro correto
-            $logistic = new Logistic($marketplace);
-            
+            // Instanciar logística usando dados do marketplace e da loja
+            $storeId = 0;
+            if (!empty($items) && isset($items[0]['sku'])) {
+                $storeId = (int) $this->extractSellerFromSku($items[0]['sku']);
+            }
+
+            $dataQuote = [
+                'zipcodeRecipient' => $zipcode,
+                'items'            => $items,
+            ];
+
+            $this->instanceLogistic($marketplace, $storeId, $dataQuote, false);
+            $logistic = $this->logistic;
+
             // Executar cotação com parâmetros corretos
-            $result = $logistic->getQuote($items, $zipcode, $checkStock, $groupServices);
+            $result = $logistic->getQuote($dataQuote, false);
             
             // Verificar se resultado é válido
             if (!is_array($result)) {
@@ -4095,21 +4106,13 @@ class CalculoFrete {
             // Instanciar Logistic com tratamento de erro
             try {
                 // Verificar se já existe instância
-                if (!isset($this->logistic)) {
-                    error_log("executeSingleSellerQuote: Criando nova instância Logistic para seller {$sellerId}");
-                    $this->logistic = new Logistic($logisticConfig);
-                } else {
-                    error_log("executeSingleSellerQuote: Atualizando configuração Logistic para seller {$sellerId}");
-                    
-                    // Verificar se método updateConfig existe
-                    if (method_exists($this->logistic, 'updateConfig')) {
-                        $this->logistic->updateConfig($logisticConfig);
-                    } else {
-                        // Recriar instância se não há método de atualização
-                        error_log("executeSingleSellerQuote: Recriando instância Logistic (updateConfig não existe)");
-                        $this->logistic = new Logistic($logisticConfig);
-                    }
-                }
+                $this->instanceLogistic(
+                    $logisticConfig['type'] ?? 'sellercenter',
+                    $sellerId,
+                    $preparedData['dataQuote'],
+                    $logisticConfig['seller'] ?? false
+                );
+                $this->logistic = $this->instance->logistic;
                 
             } catch (Exception $logisticException) {
                 error_log("executeSingleSellerQuote: Erro ao instanciar Logistic: " . $logisticException->getMessage());
@@ -4118,11 +4121,16 @@ class CalculoFrete {
                 $defaultConfig = [
                     'type' => 'sellercenter',
                     'seller' => false,
-                    'sellercenter' => true
                 ];
-                
+
                 error_log("executeSingleSellerQuote: Tentando com configuração padrão");
-                $this->logistic = new Logistic($defaultConfig);
+                $this->instanceLogistic(
+                    $defaultConfig['type'],
+                    $sellerId,
+                    $preparedData['dataQuote'],
+                    $defaultConfig['seller']
+                );
+                $this->logistic = $this->instance->logistic;
             }
             
             error_log("executeSingleSellerQuote: Logistic instanciada com sucesso para seller {$sellerId}");
