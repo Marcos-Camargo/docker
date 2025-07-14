@@ -110,6 +110,14 @@ class Intelipost extends Logistic
      */
     public function getQuote(array $dataQuote, bool $moduloFrete = false): array
     {
+        if (!isset(
+            $dataQuote['zipcodeSender'],
+            $dataQuote['zipcodeRecipient'],
+            $dataQuote['items']
+        ) || !is_array($dataQuote['items'])) {
+            throw new InvalidArgumentException('Dados de cotação incompletos');
+        }
+
         $sales_channel = $this->sellerCenter;
         if (!$this->freightSeller) {
             $sales_channel .= "-$this->store";
@@ -131,6 +139,9 @@ class Intelipost extends Logistic
         );
 
         foreach ($dataQuote['items'] as $sku) {
+            if (!isset($sku['peso'], $sku['valor'], $sku['quantidade'], $sku['largura'], $sku['altura'], $sku['comprimento'], $sku['skuseller'], $sku['sku'])) {
+                throw new InvalidArgumentException('Item da cotação inválido');
+            }
             $dataProduct = array(
                 "weight"            => $sku['peso'],
                 "cost_of_goods"     => $sku['valor'] / $sku['quantidade'],
