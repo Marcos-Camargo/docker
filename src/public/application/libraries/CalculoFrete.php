@@ -3663,6 +3663,11 @@ class CalculoFrete {
     
     /**
      * Executa cotação tradicional (fallback)
+     *
+     * Utiliza a integração logística configurada para a loja, quando existir.
+     * Caso a loja não tenha integração ativa, a cotação é realizada usando a
+     * tabela interna como fallback.
+     *
      * @param array $mkt Dados do marketplace. Pode ser no formato
      *                   ['platform' => 'identificador'] ou [0 => 'identificador']
      * @param array $items
@@ -3736,18 +3741,23 @@ class CalculoFrete {
                 ];
             }
             
-            // Instanciar logística usando dados do marketplace e da loja
+            // Determina a logística da loja. Caso não possua integração,
+            // será utilizado o fallback da tabela interna.
             $storeId = 0;
             if (!empty($items) && isset($items[0]['sku'])) {
                 $storeId = (int) $this->extractSellerFromSku($items[0]['sku']);
             }
+
+            $integration = $this->getIntegrationLogistic($storeId);
+            $logisticType = $integration ?: 'TableInternal';
+            $freightSeller = $integration ? true : false;
 
             $dataQuote = [
                 'zipcodeRecipient' => $zipcode,
                 'items'            => $items,
             ];
 
-            $this->instanceLogistic($marketplace, $storeId, $dataQuote, false);
+            $this->instanceLogistic($logisticType, $storeId, $dataQuote, $freightSeller);
             $logistic = $this->logistic;
 
             // Executar cotação com parâmetros corretos
