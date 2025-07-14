@@ -515,7 +515,7 @@ class GetOrders extends BatchBackground_Controller
         $log_name = __CLASS__ . '/' . __FUNCTION__;
         
         // Verificar se feature flag está habilitada feature-OEP-1921-order-breaking
-        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
             // Feature flag desabilitada - usar lógica original
             $this->newOrder($content);
             return;
@@ -883,7 +883,7 @@ class GetOrders extends BatchBackground_Controller
     public function processPartialInvoicing(string $billNo, array $items = []): array
     {
         // Verificar se a feature flag está habilitada feature-OEP-2009-partial-invoicing
-        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
             return ['success' => false, 'message' => 'Feature não habilitada'];
         }
         
@@ -946,7 +946,7 @@ class GetOrders extends BatchBackground_Controller
     public function processPartialShipping(string $billNo, array $shippingData): array
     {
         // Verificar se a feature flag está habilitada feature-OEP-2009-partial-invoicing
-        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
             return ['success' => false, 'message' => 'Feature não habilitada'];
         }
         
@@ -1218,7 +1218,7 @@ class GetOrders extends BatchBackground_Controller
         $log_name = __CLASS__ . '/' . __FUNCTION__;
         
         // Verificar se feature flag está habilitada
-        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
             return ['valid' => true, 'message' => 'Feature flag desabilitada - validação ignorada'];
         }
         
@@ -1537,7 +1537,7 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
         $log_name = __CLASS__ . '/' . __FUNCTION__;
         
         // Verificar se feature flag está habilitada feature-OEP-2009-partial-invoicing
-        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
             return ['valid' => false, 'message' => 'Feature flag de operações parciais desabilitada'];
         }
         
@@ -1601,7 +1601,7 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
         $log_name = __CLASS__ . '/' . __FUNCTION__;
         
         // Verificar se feature flag está habilitada feature-OEP-2009-partial-invoicing
-        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+        if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
             return [];
         }
         
@@ -1668,7 +1668,7 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
         
         try {
             // Verificar se feature flag está habilitada feature-OEP-2009-partial-invoicing
-            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
                 $this->log_data('batch', $log_name, 
                     "Feature flag de faturamento parcial desabilitada - notificação ignorada", "W");
                 return ['success' => true, 'message' => 'Feature flag desabilitada'];
@@ -1722,7 +1722,7 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
         
         try {
             // Verificar se feature flag está habilitada feature-OEP-2010-partial-shipping
-            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
                 $this->log_data('batch', $log_name, 
                     "Feature flag de envio parcial desabilitada - notificação ignorada", "W");
                 return ['success' => true, 'message' => 'Feature flag desabilitada'];
@@ -1842,7 +1842,7 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
         
         try {
             // Verificar se feature flag está habilitada feature-OEP-2012-financial-trigger
-            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
                 return ['success' => false, 'message' => 'Feature flag desabilitada'];
             }
             

@@ -1233,7 +1233,7 @@ class CalculoFrete {
         // === ORQUESTRADOR MULTISELLER COM FEATURE FLAGS ===
 
         // Verificar se multiseller está habilitado via feature feature-OEP-1921-multiseller-quote
-        $multisellerEnabled = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results');
+        $multisellerEnabled = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results');
 
         if ($multisellerEnabled && $this->enable_multiseller_operation) {
             // Executar análise multiseller otimizada
@@ -1244,7 +1244,7 @@ class CalculoFrete {
                     "Executando cotação multiseller - " . $multisellerAnalysis['total_sellers'] . " sellers detectados", "I");
                 
                 // Verificar feature flag para cotação paralela feature-OEP-1921-parallel-quotefeature-OEP-1921-parallel-quote
-                if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+                if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
                     try {
                         $parallelResult = $this->executeParallelMultisellerQuote(
                             $mkt, 
@@ -2975,7 +2975,7 @@ class CalculoFrete {
                 
                 // Verificar feature flag
                 if ($enable_multiseller && class_exists('\App\Libraries\FeatureFlag\FeatureManager')) {
-                    $enable_multiseller = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results');
+                    $enable_multiseller = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results');
                 }
                 
                 if (!$enable_multiseller) {
@@ -3398,7 +3398,7 @@ class CalculoFrete {
     public function setEnableMultisellerOperation(bool $enabled): self
     {
         // Verificar feature flag antes de permitir ativação
-        if ($enabled && !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) { 
+        if ($enabled && !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) { 
             $this->enable_multiseller_operation = false;
             $this->multiseller_initialized = true;
             return $this;
@@ -3439,7 +3439,7 @@ class CalculoFrete {
         
         // Verificar feature flag
        
-        if ( !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+        if ( !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
             $this->enable_multiseller_operation = false;
             $this->multiseller_initialized = true;
             return;
@@ -3505,7 +3505,7 @@ class CalculoFrete {
     {
         // Verificar feature flag primeiro
         
-        if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+        if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
             return false;
         }
         
@@ -3630,7 +3630,7 @@ class CalculoFrete {
     {
         try {
             // Verificar se feature flag de paralelismo está habilitada
-            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
+            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
                 return false;
             }
             
@@ -3752,16 +3752,43 @@ class CalculoFrete {
             $logisticType = $integration ?: 'TableInternal';
             $freightSeller = $integration ? true : false;
 
-            $dataQuote = [
-                'zipcodeRecipient' => $zipcode,
-                'items'            => $items,
-            ];
+            if (is_array($this->validationResult) &&
+                isset(
+                    $this->validationResult['dataQuote'],
+                    $this->validationResult['cross_docking'],
+                    $this->validationResult['zipCodeSeller'],
+                    $this->validationResult['arrDataAd']
+                )) {
+                // Aproveita dados já validados na etapa inicial
+                $dataQuote = $this->validationResult['dataQuote'];
+                $dataQuote['crossDocking']  = $this->validationResult['cross_docking'];
+                $dataQuote['zipcodeSender'] = $this->validationResult['zipCodeSeller'];
+                $dataQuote['dataInternal']  = $this->validationResult['arrDataAd'];
+            } else {
+                $dataQuote = [
+                    'zipcodeRecipient' => $zipcode,
+                    'items'            => $items,
+                ];
+            }
 
             $result = null;
             try {
                 $this->instanceLogistic($logisticType, $storeId, $dataQuote, $freightSeller);
                 $logistic = $this->logistic;
                 $result = $logistic->getQuote($dataQuote, false);
+            } catch (InvalidArgumentException $e) {
+                get_instance()->log_data('batch', $log_name,
+                    'Falha de validação na cotação: ' . $e->getMessage(), 'E');
+
+                $executionTime = microtime(true) - $time_start;
+                return [
+                    'success' => false,
+                    'data' => [
+                        'message' => 'Erro na validação dos dados de cotação: ' . $e->getMessage(),
+                        'execution_time' => round($executionTime, 3),
+                        'execution_mode' => 'traditional_error'
+                    ]
+                ];
             } catch (Exception $e) {
                 get_instance()->log_data('batch', $log_name,
                     "Falha ao cotar com logística {$logisticType}: " . $e->getMessage(), 'E');
@@ -3776,6 +3803,19 @@ class CalculoFrete {
 
                     get_instance()->log_data('batch', $log_name,
                         'Fallback TableInternal executado', 'I');
+                } catch (InvalidArgumentException $fallbackException) {
+                    get_instance()->log_data('batch', $log_name,
+                        'Falha no fallback TableInternal: ' . $fallbackException->getMessage(), 'E');
+
+                    $executionTime = microtime(true) - $time_start;
+                    return [
+                        'success' => false,
+                        'data' => [
+                            'message' => 'Erro interno na cotação: ' . $fallbackException->getMessage(),
+                            'execution_time' => round($executionTime, 3),
+                            'execution_mode' => 'traditional_error'
+                        ]
+                    ];
                 } catch (Exception $fallbackException) {
                     get_instance()->log_data('batch', $log_name,
                         'Falha no fallback TableInternal: ' . $fallbackException->getMessage(), 'E');
