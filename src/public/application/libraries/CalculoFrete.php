@@ -3663,7 +3663,8 @@ class CalculoFrete {
     
     /**
      * Executa cotação tradicional (fallback)
-     * @param array $mkt
+     * @param array $mkt Dados do marketplace. Pode ser no formato
+     *                   ['platform' => 'identificador'] ou [0 => 'identificador']
      * @param array $items
      * @param string|null $zipcode
      * @param bool $checkStock
@@ -3691,8 +3692,14 @@ class CalculoFrete {
                 ];
             }
             
-            // Converter array de marketplace para string se necessário
-            $marketplace = is_array($mkt) ? ($mkt[0] ?? '') : $mkt;
+            // Extrair identificador do marketplace
+            if (array_key_exists('platform', $mkt) && !empty($mkt['platform'])) {
+                $marketplace = $mkt['platform'];
+            } elseif (array_key_exists(0, $mkt) && !empty($mkt[0])) {
+                $marketplace = $mkt[0];
+            } else {
+                $marketplace = '';
+            }
             
             if (empty($marketplace)) {
                 return [
