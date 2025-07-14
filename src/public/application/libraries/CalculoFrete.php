@@ -3752,10 +3752,24 @@ class CalculoFrete {
             $logisticType = $integration ?: 'TableInternal';
             $freightSeller = $integration ? true : false;
 
-            $dataQuote = [
-                'zipcodeRecipient' => $zipcode,
-                'items'            => $items,
-            ];
+            if (is_array($this->validationResult) &&
+                isset(
+                    $this->validationResult['dataQuote'],
+                    $this->validationResult['cross_docking'],
+                    $this->validationResult['zipCodeSeller'],
+                    $this->validationResult['arrDataAd']
+                )) {
+                // Aproveita dados já validados na etapa inicial
+                $dataQuote = $this->validationResult['dataQuote'];
+                $dataQuote['crossDocking']  = $this->validationResult['cross_docking'];
+                $dataQuote['zipcodeSender'] = $this->validationResult['zipCodeSeller'];
+                $dataQuote['dataInternal']  = $this->validationResult['arrDataAd'];
+            } else {
+                $dataQuote = [
+                    'zipcodeRecipient' => $zipcode,
+                    'items'            => $items,
+                ];
+            }
 
             $result = null;
             try {
