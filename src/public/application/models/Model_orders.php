@@ -3984,43 +3984,7 @@ class Model_orders extends CI_Model
         return $map;
     }
 
-   public function createInvoice($invoiceData, array $items = []) {
-        $insert = $this->db->insert('orders_invoices', $invoiceData);
-        if (!$insert) {
-            return false;
-        }
 
-        $invoiceId = $this->db->insert_id();
-
-        if ($invoiceId && !empty($items)) {
-            foreach ($items as $item) {
-                if (!isset($item['sku'])) {
-                    continue;
-                }
-
-                $orderItem = $this->db->select('id, qty')
-                    ->from('orders_item')
-                    ->where('order_id', $invoiceData['order_id'])
-                    ->where('sku', $item['sku'])
-                    ->get()
-                    ->row_array();
-
-                if (!$orderItem) {
-                    continue;
-                }
-
-                $qty = $item['quantity'] ?? $orderItem['qty'];
-
-                $this->db->insert('orders_invoice_items', [
-                    'invoice_id'    => $invoiceId,
-                    'order_item_id' => $orderItem['id'],
-                    'qty_invoiced'  => $qty,
-                ]);
-            }
-        }
-
-        return $invoiceId;
-    }
 
     public function getInvoiceItems(int $invoiceId): array {
         return $this->db->select('orders_item.sku, orders_invoice_items.qty_invoiced as qty')
