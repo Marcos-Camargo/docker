@@ -914,30 +914,8 @@ class GetOrders extends BatchBackground_Controller
             
 
             // Processar faturamento
-            $invoiceData = $this->generateInvoiceData($order, $items);
-            $invoiceId = $this->model_orders->createInvoice($invoiceData);
-
-            if ($invoiceId) {
-                $orderItems = $this->model_orders_item->getItemsByOrderId($order['id']);
-                $map = [];
-                foreach ($items as $it) {
-                    $map[$it['sku']] = $it['quantity'] ?? null;
-                }
-                $invoiceItems = [];
-                foreach ($orderItems as $orderItem) {
-                    if (!empty($items) && !array_key_exists($orderItem['sku'], $map)) {
-                        continue;
-                    }
-                    $quantity = $map[$orderItem['sku']] ?? $orderItem['quantity'];
-                    $invoiceItems[] = [
-                        'invoice_id' => $invoiceId,
-                        'sku' => $orderItem['sku'],
-                        'quantity' => $quantity,
-                        'price' => $orderItem['price']
-                    ];
-                }
-                $this->model_orders_invoice_items->createItems($invoiceItems);
-            }
+            $invoice = $this->generateInvoiceData($order, $items);
+            $invoiceId = $this->model_orders->createInvoice($invoice['data'], $invoice['items']);
 
             
             if (!$invoiceId) {
