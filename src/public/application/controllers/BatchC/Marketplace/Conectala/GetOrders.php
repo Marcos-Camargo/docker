@@ -1899,7 +1899,7 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
         
         try {
             // Verificar se feature flag está habilitada feature-OEP-2012-financial-trigger
-            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
+            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('feature-OEP-2012-financial-trigger')) {
                 return ['success' => false, 'message' => 'Feature flag desabilitada'];
             }
             
