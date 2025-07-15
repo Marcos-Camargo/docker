@@ -911,8 +911,13 @@ class GetOrders extends BatchBackground_Controller
             }
             
             // Processar faturamento
-            $invoiceData = $this->generateInvoiceData($order, $items);
-            $invoiceId = $this->model_orders->createInvoice($invoiceData);
+            $invoice = $this->generateInvoiceData($order, $items);
+
+            if (empty($invoice) || empty($invoice['items'])) {
+                return ['success' => false, 'message' => 'Nenhum item disponível para faturar'];
+            }
+
+            $invoiceId = $this->model_orders->createInvoice($invoice['data'], $invoice['items']);
             
             if (!$invoiceId) {
                 return ['success' => false, 'message' => 'Erro ao gerar nota fiscal'];
@@ -920,9 +925,9 @@ class GetOrders extends BatchBackground_Controller
             
             // Atualizar status do pedido
             $this->model_orders->updateOrderStatus($order['id'], 5); // Status: Faturado
-            
+
             // Notificar marketplace
-            $this->notifyMarketplaceInvoicing($order, $invoiceData);
+            $this->notifyMarketplaceInvoicing($order, $invoice['data']);
             
             $this->log_data('batch', $log_name, "Faturamento parcial processado: $billNo", "I");
             
@@ -1599,52 +1604,76 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
     private function generateInvoiceData(array $order, array $items): array
     {
         $log_name = __CLASS__ . '/' . __FUNCTION__;
-        
-        // Verificar se feature flag está habilitada feature-OEP-2009-partial-invoicing
+
         if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-2009-partial-invoicing')) {
             return [];
         }
-        
+
         try {
-            // Calcular valor da nota fiscal
+            $orderItems = $this->model_orders_item->getItemsByOrderId($order['id']);
+            $orderMap = [];
+            foreach ($orderItems as $oi) {
+                $orderMap[$oi['sku']] = $oi;
+            }
+
+            $already = $this->model_orders->getInvoicedQuantitiesByOrder($order['id']);
+
+            $invoiceItems = [];
             $invoiceValue = 0;
-            
+
             if (empty($items)) {
-                // Faturar pedido completo
-                $invoiceValue = $order['total_order'] ?? 0;
-            } else {
-                // Faturar apenas itens específicos
-                $orderItems = $this->model_orders_item->getItemsByOrderId($order['id']);
-                
-                foreach ($items as $item) {
-                    $orderItem = array_filter($orderItems, function($oi) use ($item) {
-                        return $oi['sku'] === $item['sku'];
-                    });
-                    
-                    $orderItem = reset($orderItem);
-                    
-                    if ($orderItem) {
-                        $quantity = $item['quantity'] ?? $orderItem['quantity'];
-                        $invoiceValue += $orderItem['price'] * $quantity;
+                foreach ($orderItems as $oi) {
+                    $available = $oi['quantity'] - ($already[$oi['sku']] ?? 0);
+                    if ($available > 0) {
+                        $invoiceItems[] = ['sku' => $oi['sku'], 'quantity' => $available, 'price' => $oi['price']];
+                        $invoiceValue += $oi['price'] * $available;
                     }
                 }
+            } else {
+                foreach ($items as $item) {
+                    if (!isset($item['sku']) || !isset($orderMap[$item['sku']])) {
+                        continue;
+                    }
+
+                    $oi = $orderMap[$item['sku']];
+                    $available = $oi['quantity'] - ($already[$item['sku']] ?? 0);
+                    if ($available <= 0) {
+                        continue;
+                    }
+
+                    $qty = $item['quantity'] ?? $available;
+                    if ($qty > $available) {
+                        $qty = $available;
+                    }
+
+                    if ($qty <= 0) {
+                        continue;
+                    }
+
+                    $invoiceItems[] = ['sku' => $item['sku'], 'quantity' => $qty, 'price' => $oi['price']];
+                    $invoiceValue += $oi['price'] * $qty;
+                }
             }
-            
+
+            if ($invoiceValue <= 0) {
+                return [];
+            }
+
             $invoiceData = [
                 'order_id' => $order['id'],
                 'invoice_value' => $invoiceValue,
                 'invoice_date' => date('Y-m-d H:i:s'),
-                'invoice_number' => null, // Será gerado automaticamente
-                'invoice_key' => null,    // Será preenchido pela integração fiscal
-                'invoice_xml' => null,    // Será preenchido pela integração fiscal
-                'invoice_pdf' => null     // Será preenchido pela integração fiscal
+                'invoice_number' => null,
+                'invoice_key' => null,
+                'invoice_xml' => null,
+                'invoice_pdf' => null
             ];
-            
-            $this->log_data('batch', $log_name, 
-                "Dados de nota fiscal gerados para pedido " . $order['bill_no'] . 
+
+            $this->log_data('batch', $log_name,
+                "Dados de nota fiscal gerados para pedido " . $order['bill_no'] .
                 " - Valor: R$ " . number_format($invoiceValue, 2, ',', '.'), "I");
-            
-            return $invoiceData;
+
+            return ['data' => $invoiceData, 'items' => $invoiceItems];
             
         } catch (Exception $e) {
             $this->log_data('batch', $log_name, "Erro ao gerar dados da NF: " . $e->getMessage(), "E");
