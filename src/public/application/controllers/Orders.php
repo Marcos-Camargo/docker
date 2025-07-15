@@ -8757,21 +8757,10 @@ $this->data['invoice_error_reason'] = null;
         // $retornoCalculo = $this->model_orders->getMandanteFretePedido( $dataPost['id_pedido_cancelamento_comissao'] );
         // $valorComissaoCobrada = round($retornoCalculo['taxa_descontada'] * -1,2);
         
-        $retornoCalculo = $this->model_orders->getDetalheTaxas( $dataPost['id_pedido_cancelamento_comissao'] );
-        $valorComissaoCobrada = 0;
-        $valorComissaoCobradaFiscal = 0;
-        foreach($retornoCalculo as $conta){
-            if($this->model_settings->getValueIfAtiveByName('cancellation_commission_calculate_campaign')){
-                $valorComissaoCobrada += ($conta['comissao_produto'] + $conta['comissao_frete'] + $conta['comissao_campanha'])  ; 
-            }else{
-                $valorComissaoCobrada += ($conta['comissao_produto'] + $conta['comissao_frete'] + $conta['comissao_campanha']) - ($conta['reembolso_mkt']) ; 
-            }
+        $calculateCampaign = (bool)$this->model_settings->getValueIfAtiveByName('cancellation_commission_calculate_campaign');
+        $valorComissaoCobrada = $this->model_orders->calculateRefundCommission($dataPost["id_pedido_cancelamento_comissao"], $calculateCampaign);
+        $valorComissaoCobradaFiscal = $this->model_orders->calculateRefundCommission($dataPost["id_pedido_cancelamento_comissao"], false);
 
-            $valorComissaoCobradaFiscal += ($conta['comissao_produto'] + $conta['comissao_frete'] + $conta['comissao_campanha']) - ($conta['reembolso_mkt']) ;
-        }
-
-        $valorComissaoCobrada = round($valorComissaoCobrada *-1,2);
-        $valorComissaoCobradaFiscal = round($valorComissaoCobradaFiscal *-1,2);
 
         //Realiza a criação do painel jurídico com o valor da comissão a ser cobrada
         $dataJuridico = [
