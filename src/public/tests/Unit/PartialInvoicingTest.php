@@ -56,11 +56,6 @@ class PartialInvoicingTest extends TestCase
             ->method('getInvoicedQuantities')
             ->with(1)
             ->willReturn([]);
-        $invoiceItemModel->expects($this->once())
-            ->method('createItems')
-            ->with($this->callback(function($items){
-                return count($items)==1 && $items[0]['sku']=='SKU2' && $items[0]['quantity']==1;
-            }));
 
         $controller = new class extends GetOrders {
             public function __construct() {}
@@ -108,7 +103,13 @@ class PartialInvoicingTest extends TestCase
             ->willReturn($items);
         $orderModel->expects($this->once())
             ->method('createInvoice')
-            ->with($this->callback(function($data){return $data['invoice_value']==100;}))
+            ->with(
+                $this->callback(function($data){return $data['invoice_value']==100;}),
+                [
+                    ['sku'=>'SKU1','quantity'=>2,'price'=>10],
+                    ['sku'=>'SKU2','quantity'=>1,'price'=>5]
+                ]
+            )
             ->willReturn(10);
         $orderModel->expects($this->once())
             ->method('updateOrderStatus')
@@ -117,11 +118,6 @@ class PartialInvoicingTest extends TestCase
             ->method('getInvoicedQuantities')
             ->with(1)
             ->willReturn([]);
-        $invoiceItemModel->expects($this->once())
-            ->method('createItems')
-            ->with($this->callback(function($items){
-                return count($items)==2;
-            }));
 
 
         $controller = new class extends GetOrders {
