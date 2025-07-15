@@ -18,8 +18,12 @@ class PartialInvoicingTest extends TestCase
         $itemModel = $this->getMockBuilder(stdClass::class)
             ->addMethods(['getItemsByOrderId'])
             ->getMock();
+        $invoiceItemModel = $this->getMockBuilder(stdClass::class)
+            ->addMethods(['createItems','getInvoicedQuantities'])
+            ->getMock();
         $CI->model_orders = $orderModel;
         $CI->model_orders_item = $itemModel;
+        $CI->model_orders_invoice_items = $invoiceItemModel;
 
         $order = ['id'=>1,'bill_no'=>'ORDER1','order_mkt_multiseller'=>'ORDER1','total_order'=>100];
         $items = [
@@ -48,6 +52,15 @@ class PartialInvoicingTest extends TestCase
         $orderModel->expects($this->once())
             ->method('updateOrderStatus')
             ->with(1,5);
+        $invoiceItemModel->expects($this->once())
+            ->method('getInvoicedQuantities')
+            ->with(1)
+            ->willReturn([]);
+        $invoiceItemModel->expects($this->once())
+            ->method('createItems')
+            ->with($this->callback(function($items){
+                return count($items)==1 && $items[0]['sku']=='SKU2' && $items[0]['quantity']==1;
+            }));
 
         $controller = new class extends GetOrders {
             public function __construct() {}
@@ -62,20 +75,27 @@ class PartialInvoicingTest extends TestCase
         $this->assertEquals(10, $response['invoice_id']);
     }
 
-    public function test_processPartialInvoicing_skips_already_invoiced_items()
+    public function test_processFullInvoicing_creates_items_for_all()
     {
         $CI = &get_instance();
         $orderModel = $this->getMockBuilder(stdClass::class)
-            ->addMethods(['getOrdersDatabyBill','createInvoice','updateOrderStatus','getInvoicedQuantitiesByOrder'])
+            ->addMethods(['getOrdersDatabyBill','createInvoice','updateOrderStatus'])
+
             ->getMock();
         $itemModel = $this->getMockBuilder(stdClass::class)
             ->addMethods(['getItemsByOrderId'])
             ->getMock();
+        $invoiceItemModel = $this->getMockBuilder(stdClass::class)
+            ->addMethods(['createItems','getInvoicedQuantities'])
+            ->getMock();
         $CI->model_orders = $orderModel;
         $CI->model_orders_item = $itemModel;
+        $CI->model_orders_invoice_items = $invoiceItemModel;
 
         $order = ['id'=>1,'bill_no'=>'ORDER1','order_mkt_multiseller'=>'ORDER1','total_order'=>100];
         $items = [
+            ['sku'=>'SKU1','price'=>10,'quantity'=>2],
+
             ['sku'=>'SKU2','price'=>5,'quantity'=>1]
         ];
 
@@ -87,12 +107,22 @@ class PartialInvoicingTest extends TestCase
             ->with(1)
             ->willReturn($items);
         $orderModel->expects($this->once())
-            ->method('getInvoicedQuantitiesByOrder')
+            ->method('createInvoice')
+            ->with($this->callback(function($data){return $data['invoice_value']==100;}))
+            ->willReturn(10);
+        $orderModel->expects($this->once())
+            ->method('updateOrderStatus')
+            ->with(1,5);
+        $invoiceItemModel->expects($this->once())
+            ->method('getInvoicedQuantities')
             ->with(1)
-            ->willReturn(['SKU2' => 1]);
+            ->willReturn([]);
+        $invoiceItemModel->expects($this->once())
+            ->method('createItems')
+            ->with($this->callback(function($items){
+                return count($items)==2;
+            }));
 
-        $orderModel->expects($this->never())->method('createInvoice');
-        $orderModel->expects($this->never())->method('updateOrderStatus');
 
         $controller = new class extends GetOrders {
             public function __construct() {}
@@ -101,8 +131,10 @@ class PartialInvoicingTest extends TestCase
         };
         $controller->int_to = 'ANY';
 
-        $response = $controller->processPartialInvoicing('ORDER1', [['sku'=>'SKU2','quantity'=>1]]);
+        $response = $controller->processPartialInvoicing('ORDER1', []);
 
-        $this->assertFalse($response['success']);
+        $this->assertTrue($response['success']);
+        $this->assertEquals(10, $response['invoice_id']);
+
     }
 }
