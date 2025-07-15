@@ -3930,12 +3930,50 @@ class Model_orders extends CI_Model
         $this->db->where('id', $order_id);
         return $this->db->update('orders', $updateData);
     }
+   public function createInvoice($invoiceData, array $items = []) {
+        $insert = $this->db->insert('orders_invoices', $invoiceData);
+        if (!$insert) {
+            return false;
+        }
+
+        $invoiceId = $this->db->insert_id();
+
+        if ($invoiceId && !empty($items)) {
+            foreach ($items as $item) {
+                if (!isset($item['sku'])) {
+                    continue;
+                }
+
+                $orderItem = $this->db->select('id, qty')
+                    ->from('orders_item')
+                    ->where('order_id', $invoiceData['order_id'])
+                    ->where('sku', $item['sku'])
+                    ->get()
+                    ->row_array();
+
+                if (!$orderItem) {
+                    continue;
+                }
+
+                $qty = $item['quantity'] ?? $orderItem['qty'];
+
+                $this->db->insert('orders_invoice_items', [
+                    'invoice_id'    => $invoiceId,
+                    'order_item_id' => $orderItem['id'],
+                    'qty_invoiced'  => $qty,
+                ]);
+            }
+        }
+
+        return $invoiceId ?: false;
+    }
 
     public function getInvoicedQuantitiesByOrder(int $order_id): array {
-        $result = $this->db->select('sku, SUM(quantity) as qty')
+        $result = $this->db->select('orders_item.sku, SUM(orders_invoice_items.qty_invoiced) as qty')
             ->from('orders_invoice_items')
-            ->where('order_id', $order_id)
-            ->group_by('sku')
+            ->join('orders_item', 'orders_item.id = orders_invoice_items.order_item_id')
+            ->where('orders_item.order_id', $order_id)
+            ->group_by('orders_item.sku')
             ->get()
             ->result_array();
 
@@ -3976,7 +4014,7 @@ class Model_orders extends CI_Model
                 $this->db->insert('orders_invoice_items', [
                     'invoice_id'    => $invoiceId,
                     'order_item_id' => $orderItem['id'],
-                    'qty'           => $qty,
+                    'qty_invoiced'  => $qty,
                 ]);
             }
         }
@@ -3985,7 +4023,7 @@ class Model_orders extends CI_Model
     }
 
     public function getInvoiceItems(int $invoiceId): array {
-        return $this->db->select('orders_item.sku, orders_invoice_items.qty')
+        return $this->db->select('orders_item.sku, orders_invoice_items.qty_invoiced as qty')
             ->from('orders_invoice_items')
             ->join('orders_item', 'orders_item.id = orders_invoice_items.order_item_id')
             ->where('orders_invoice_items.invoice_id', $invoiceId)
