@@ -3930,31 +3930,6 @@ class Model_orders extends CI_Model
         $this->db->where('id', $order_id);
         return $this->db->update('orders', $updateData);
     }
-   public function createInvoice($invoiceData, array $items = []) {
-        $insert = $this->db->insert('orders_invoices', $invoiceData);
-        if (!$insert) {
-            return false;
-        }
-
-        $invoiceId = $this->db->insert_id();
-
-        if ($invoiceId && !empty($items)) {
-            foreach ($items as $item) {
-                $row = [
-                    'invoice_id' => $invoiceId,
-                    'order_id'   => $invoiceData['order_id'],
-                    'sku'        => $item['sku'],
-                    'quantity'   => $item['quantity'] ?? 1,
-                ];
-                if (isset($item['price'])) {
-                    $row['price'] = $item['price'];
-                }
-                $this->db->insert('orders_invoice_items', $row);
-            }
-        }
-
-        return $invoiceId;
-    }
 
     public function getInvoicedQuantitiesByOrder(int $order_id): array {
         $result = $this->db->select('sku, SUM(quantity) as qty')
@@ -3972,7 +3947,11 @@ class Model_orders extends CI_Model
     }
 
    public function createInvoice($invoiceData, array $items = []) {
-        $this->db->insert('orders_invoices', $invoiceData);
+        $insert = $this->db->insert('orders_invoices', $invoiceData);
+        if (!$insert) {
+            return false;
+        }
+
         $invoiceId = $this->db->insert_id();
 
         if ($invoiceId && !empty($items)) {
@@ -4002,7 +3981,7 @@ class Model_orders extends CI_Model
             }
         }
 
-        return $invoiceId ?: false;
+        return $invoiceId;
     }
 
     public function getInvoiceItems(int $invoiceId): array {
