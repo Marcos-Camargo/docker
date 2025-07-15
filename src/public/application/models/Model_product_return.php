@@ -225,6 +225,14 @@ class Model_product_return extends CI_Model
         return true;
     }
 
+    /**
+     * Indicates if multiple returns per order are allowed.
+     */
+    public function allowMultipleReturnsPerOrder(): bool
+    {
+        return $this->model_settings->getStatusbyName('enable_multiple_returns_per_order') == 1;
+    }
+
     public function newReturnedProduct(array $product)
     {
         $insert_data = array();
