@@ -25,8 +25,8 @@ edited through the administration panel or inserted manually during setup.
 * Setting `enable_multiple_returns_per_order` – when active the platform allows
   creating more than one return for a single order.
 * `POST /api/v1/partial-shipping` – placeholder endpoint for partial shipping
-  updates. It currently responds with a not implemented message while OEP‑2008
-  is under development.
+  updates. The route maps to `Api/V1/PartialShipping/index` and currently
+  responds with a not implemented message while OEP‑2008 is under development.
 
 When `multiseller_freight_results` is enabled the quote response is modified so
 that the cheapest option uses the name from `lowest_price` and the fastest uses
