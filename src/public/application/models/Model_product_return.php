@@ -177,7 +177,7 @@ class Model_product_return extends CI_Model
 
     public function getProvidersList()
     {
-        $sql = "SELECT 
+        $sql = "SELECT
                     p.id, 
                     p.name 
                 FROM shipping_company p 
@@ -185,6 +185,44 @@ class Model_product_return extends CI_Model
 
         $query = $this->db->query($sql);
         return $query->result_array();
+    }
+
+    private function hasActiveReturnOrder(int $order_id): bool
+    {
+        return $this->db
+            ->where('order_id', $order_id)
+            ->where_not_in('status', array(self::CANCELED))
+            ->get(self::TABLE)
+            ->num_rows() > 0;
+    }
+
+    private function hasActiveReturnItem(int $order_id, int $product_id, ?int $variant = null): bool
+    {
+        $this->db->where(array('order_id' => $order_id, 'product_id' => $product_id));
+        if (is_null($variant)) {
+            $this->db->where('variant', null);
+        } else {
+            $this->db->where('variant', $variant);
+        }
+
+        $this->db->where_not_in('status', array(self::CANCELED));
+        return $this->db->get(self::TABLE)->num_rows() > 0;
+    }
+
+    public function validateNewReturn(int $order_id, int $product_id, ?int $variant = null): bool
+    {
+        $allowMultiple = $this->model_settings->getStatusbyName('enable_multiple_returns_per_order') == 1;
+        $order = $this->model_orders->getOrdersData(0, $order_id);
+        if (empty($order['data_mkt_delivered'])) {
+            return false;
+        }
+        if ($this->hasActiveReturnItem($order_id, $product_id, $variant)) {
+            return false;
+        }
+        if (!$allowMultiple && $this->hasActiveReturnOrder($order_id)) {
+            return false;
+        }
+        return true;
     }
 
     public function newReturnedProduct(array $product)
@@ -260,6 +298,10 @@ class Model_product_return extends CI_Model
             }
 
             $return_total_value = $product_quantity * $price;
+
+            if (!$this->validateNewReturn($order_id, $product_id, $variant)) {
+                continue;
+            }
 
             if ($return_action == 'create') {
                 $this->db->insert('product_return', array(

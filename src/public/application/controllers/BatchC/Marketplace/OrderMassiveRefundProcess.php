@@ -151,22 +151,10 @@ class OrderMassiveRefundProcess extends BatchBackground_Controller
                             continue;
                         }
 
-                        //Calculando a comissão
-                        $retornoCalculo = $this->model_orders->getDetalheTaxas( $row[$csvKey] );
-                        $valorComissaoCobrada = 0;
-                        $valorComissaoCobradaFiscal = 0;
-                        foreach($retornoCalculo as $conta){
-                            if($this->model_settings->getValueIfAtiveByName('cancellation_commission_calculate_campaign')){
-                                $valorComissaoCobrada += ($conta['comissao_produto'] + $conta['comissao_frete'] + $conta['comissao_campanha'])  ;
-                            }else{
-                                $valorComissaoCobrada += ($conta['comissao_produto'] + $conta['comissao_frete'] + $conta['comissao_campanha']) - ($conta['reembolso_mkt']) ;
-                            }
-                            
-                            $valorComissaoCobradaFiscal += ($conta['comissao_produto'] + $conta['comissao_frete'] + $conta['comissao_campanha']) - ($conta['reembolso_mkt']) ; 
+                        $calculateCampaign = (bool)$this->model_settings->getValueIfAtiveByName('cancellation_commission_calculate_campaign');
+                        $valorComissaoCobrada = $this->model_orders->calculateRefundCommission($row[$csvKey], $calculateCampaign);
+                        $valorComissaoCobradaFiscal = $this->model_orders->calculateRefundCommission($row[$csvKey], false);
 
-                        }
-                        $valorComissaoCobrada = round($valorComissaoCobrada *-1,2);
-                        $valorComissaoCobradaFiscal = round($valorComissaoCobradaFiscal *-1,2);
 
                         //pedido cancelado sem cobrança de comissão
                         if (!$this->model_orders->wasOrderChargedComission($row[$csvKey])) {

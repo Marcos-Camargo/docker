@@ -7776,6 +7776,14 @@ class ProductsReturn extends Admin_Controller
         }
 
         $inserted = $this->model_product_return->newReturnedProduct($postdata);
+        if ($inserted) {
+            $order = $this->model_orders->getOrdersData(0, $order_id);
+            $integration = $this->model_integrations->getIntegrationByIntTo('VS', $order['store_id']);
+            if ($integration) {
+                $this->ordersmarketplace->marketplace_order->setExternalIntegration('VS');
+                $this->ordersmarketplace->marketplace_order->external_integration->notifyOrder($order_id, 'refund');
+            }
+        }
 
         $this->log_data(__CLASS__, __FUNCTION__.'/'.$postdata['return_action'], json_encode($postdata, JSON_UNESCAPED_UNICODE));
 

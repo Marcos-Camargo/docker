@@ -2594,6 +2594,21 @@ class Model_orders extends CI_Model
         return $result;
     }
 
+    public function calculateRefundCommission(int $orderId, bool $calculateCampaign = true): float
+    {
+        $values = $this->getDetalheTaxas($orderId);
+        $commission = 0;
+        foreach ($values as $conta) {
+            $partial = $conta['comissao_produto'] + $conta['comissao_frete'] + $conta['comissao_campanha'];
+            if (!$calculateCampaign) {
+                $partial -= $conta['reembolso_mkt'];
+            }
+            $commission += $partial;
+        }
+
+        return round($commission * -1, 2);
+    }
+
     /**
      * Recupera os dados para o modal de Detalhamento de taxas
      *
