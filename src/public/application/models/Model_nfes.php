@@ -241,5 +241,17 @@ class Model_nfes extends CI_Model
         return $this->db->where_in('order_id', $order_id)->get('nfes')->result_array();
     }
 
+    public function getNfesDataByOrderItemIds(array $item_ids): array
+    {
+        if (empty($item_ids)) {
+            return [];
+        }
+
+        return $this->db
+            ->where_in('order_item_id', $item_ids)
+            ->get('nfes')
+            ->result_array();
+    }
+
 
 }

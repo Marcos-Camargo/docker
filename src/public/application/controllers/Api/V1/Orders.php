@@ -860,6 +860,13 @@ class Orders extends API
         $resultPayment = $queryPayment->result_array();
         $resultHistoric = $queryHistoric->result_array();
 
+        $itemIds = array_column($resultOrder, 'iten_id');
+        $invoices = $this->model_nfes->getNfesDataByOrderItemIds($itemIds);
+        $invoiceByItem = [];
+        foreach ($invoices as $inv) {
+            $invoiceByItem[$inv['order_item_id']] = $inv;
+        }
+
         // Dados do pedido.
         $order = $resultOrder[0];
 
@@ -1061,9 +1068,19 @@ class Orders extends API
                 "sku_integration" => $sku_integration,
 				"campaigns" => $campaignArray,
 				"sku_marketplace" => $skumkt,
-				"return" => $returnArray,
+                "return" => $returnArray,
                 "order_item_id" => $this->changeType($iten['iten_id'], "int"),
             );
+
+            $inv = $invoiceByItem[$iten['iten_id']] ?? null;
+            $arrItems[$key]['invoice'] = $inv ? [
+                'date_emission' => $inv['date_emission'],
+                'value' => $this->changeType($inv['nfe_value'], 'float'),
+                'serie' => $this->changeType($inv['nfe_serie'], 'int'),
+                'num' => $this->changeType($inv['nfe_num'], 'int'),
+                'key' => $inv['chave'],
+                'link' => $inv['link_nfe']
+            ] : null;
 
             $commission_hierarchy_value = null;
             $commission_hierarchy_level = null;
