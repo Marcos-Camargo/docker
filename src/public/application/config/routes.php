@@ -152,3 +152,4 @@ $route['orderToDelivered'] = 'OrderToDelivered';
 $route['orderToDelivered/update'] = 'orderToDelivered/update';
 $route['orderToDelivered/getLojasByMarketplace'] = 'OrderToDelivered/getLojasByMarketplace';
 $route['orders/(:any)/partial-invoice'] = 'Api/V1/Orders/partial_invoice/$1';
+$route['api/v1/partial-shipping'] = 'Api/V1/PartialShipping/index_post';
