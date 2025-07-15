@@ -3956,6 +3956,7 @@ class OrderStatusConst {
     const DEVOLUTION_IN_TRANSPORT = 59; // Em Transporte (Pedido com extravio/devolução ao rementente)
     const MISPLACEMENT_IN_TRANSPORT = 59; // Em Transporte (Pedido com extravio/devolução ao rementente)
     const DELIVERED_NOTIFY_MKTPLACE = 60; // Entregue (Avisar ao marketplace que foi entregue)
+    const PARTIALLY_INVOICED = 62; // Faturado Parcialmente
     const ERROR_FREIGHT_CONTRACTING = 80; // Problema na contratação do frete
     const CANCELLATION_REQUESTED = 90; // Solicitado Cancelamento
     const CANCELED_BY_SELLER = 95; // Cancelado Pelo Seller (Cancelado pelo vendedor)
@@ -4008,6 +4009,8 @@ class OrderStatusConst {
                 return "Em Transporte (Pedido com extravio/devolução ao rementente)";
             case self::DELIVERED_NOTIFY_MKTPLACE:
                 return "Entregue (Avisar ao marketplace que foi entregue)";
+            case self::PARTIALLY_INVOICED:
+                return "Faturado Parcialmente";
             case self::ERROR_FREIGHT_CONTRACTING:
                 return "Problema na contratação do frete";
             case self::CANCELLATION_REQUESTED:

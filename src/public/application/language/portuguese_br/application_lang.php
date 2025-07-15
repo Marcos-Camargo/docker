@@ -929,6 +929,7 @@ $lang['application_order_57'] = "Nota Fiscal Com Erro";
 $lang['application_order_58'] = "Aguardando Retirada";
 $lang['application_order_59'] = "Extravio/Devolução";
 $lang['application_order_60'] = "Entregue"; // Precisa de intervenção no Marketplace para avisar que foi entregue.
+$lang['application_order_62'] = "Faturado Parcialmente";
 $lang['application_order_70'] = "Troca de Vendedor";
 $lang['application_order_80'] = "Problema Contratação Frete";
 $lang['application_order_81'] = "Devolvido";
