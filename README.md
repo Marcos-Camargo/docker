@@ -18,8 +18,10 @@ edited through the administration panel or inserted manually during setup.
   ```json
   {"lowest_price": "Normal", "lowest_deadline": "Expressa"}
   ```
-* Feature flag `oep-2009-partial-invoicing` – enables partial invoicing and shipping
-  for multiseller orders. When disabled these operations are ignored.
+* Feature flag `oep-2009-partial-invoicing` – enables partial invoicing for
+  multiseller orders. When disabled this operation is ignored.
+* Feature flag `oep-2010-partial-shipping` – enables shipping notifications for
+  multiseller orders.
 
 When `multiseller_freight_results` is enabled the quote response is modified so
 that the cheapest option uses the name from `lowest_price` and the fastest uses
