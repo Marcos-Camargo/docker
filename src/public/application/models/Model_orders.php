@@ -3915,8 +3915,59 @@ class Model_orders extends CI_Model
         $this->db->where('id', $order_id);
         return $this->db->update('orders', $updateData);
     }
-   public function createInvoice($invoiceData) {
-        return $this->db->insert('orders_invoices', $invoiceData);
+   public function createInvoice($invoiceData, array $items = []) {
+        $this->db->insert('orders_invoices', $invoiceData);
+        $invoiceId = $this->db->insert_id();
+
+        if ($invoiceId && !empty($items)) {
+            foreach ($items as $item) {
+                if (!isset($item['sku'])) {
+                    continue;
+                }
+
+                $orderItem = $this->db->select('id, qty')
+                    ->from('orders_item')
+                    ->where('order_id', $invoiceData['order_id'])
+                    ->where('sku', $item['sku'])
+                    ->get()
+                    ->row_array();
+
+                if (!$orderItem) {
+                    continue;
+                }
+
+                $qty = $item['quantity'] ?? $orderItem['qty'];
+
+                $this->db->insert('orders_invoice_items', [
+                    'invoice_id'    => $invoiceId,
+                    'order_item_id' => $orderItem['id'],
+                    'qty'           => $qty,
+                ]);
+            }
+        }
+
+        return $invoiceId ?: false;
+    }
+
+    public function getInvoiceItems(int $invoiceId): array {
+        return $this->db->select('orders_item.sku, orders_invoice_items.qty')
+            ->from('orders_invoice_items')
+            ->join('orders_item', 'orders_item.id = orders_invoice_items.order_item_id')
+            ->where('orders_invoice_items.invoice_id', $invoiceId)
+            ->get()
+            ->result_array();
+    }
+
+    public function getInvoicesByOrderId(int $orderId): array {
+        $invoices = $this->db->where('order_id', $orderId)
+            ->get('orders_invoices')
+            ->result_array();
+
+        foreach ($invoices as &$invoice) {
+            $invoice['items'] = $this->getInvoiceItems($invoice['id']);
+        }
+
+        return $invoices;
     }
 
     public function getOrderByBillNo($bill_no) {

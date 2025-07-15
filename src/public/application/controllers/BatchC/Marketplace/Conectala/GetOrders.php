@@ -912,7 +912,7 @@ class GetOrders extends BatchBackground_Controller
             
             // Processar faturamento
             $invoiceData = $this->generateInvoiceData($order, $items);
-            $invoiceId = $this->model_orders->createInvoice($invoiceData);
+            $invoiceId = $this->model_orders->createInvoice($invoiceData, $items);
             
             if (!$invoiceId) {
                 return ['success' => false, 'message' => 'Erro ao gerar nota fiscal'];
