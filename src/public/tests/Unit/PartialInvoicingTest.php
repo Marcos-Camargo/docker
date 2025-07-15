@@ -13,7 +13,7 @@ class PartialInvoicingTest extends TestCase
     {
         $CI = &get_instance();
         $orderModel = $this->getMockBuilder(stdClass::class)
-            ->addMethods(['getOrdersDatabyBill','createInvoice','updateOrderStatus'])
+            ->addMethods(['getOrdersDatabyBill','createInvoice','updateOrderStatus','getInvoicedQuantitiesByOrder'])
             ->getMock();
         $itemModel = $this->getMockBuilder(stdClass::class)
             ->addMethods(['getItemsByOrderId'])
@@ -30,13 +30,20 @@ class PartialInvoicingTest extends TestCase
         $orderModel->expects($this->once())
             ->method('getOrdersDatabyBill')
             ->willReturn($order);
+        $orderModel->expects($this->once())
+            ->method('getInvoicedQuantitiesByOrder')
+            ->with(1)
+            ->willReturn([]);
         $itemModel->expects($this->once())
             ->method('getItemsByOrderId')
             ->with(1)
             ->willReturn($items);
         $orderModel->expects($this->once())
             ->method('createInvoice')
-            ->with($this->callback(function($data){return $data['invoice_value']==5;}))
+            ->with(
+                $this->callback(function($data){return $data['invoice_value']==5;}),
+                [['sku'=>'SKU2','quantity'=>1,'price'=>5]]
+            )
             ->willReturn(10);
         $orderModel->expects($this->once())
             ->method('updateOrderStatus')
@@ -53,5 +60,49 @@ class PartialInvoicingTest extends TestCase
 
         $this->assertTrue($response['success']);
         $this->assertEquals(10, $response['invoice_id']);
+    }
+
+    public function test_processPartialInvoicing_skips_already_invoiced_items()
+    {
+        $CI = &get_instance();
+        $orderModel = $this->getMockBuilder(stdClass::class)
+            ->addMethods(['getOrdersDatabyBill','createInvoice','updateOrderStatus','getInvoicedQuantitiesByOrder'])
+            ->getMock();
+        $itemModel = $this->getMockBuilder(stdClass::class)
+            ->addMethods(['getItemsByOrderId'])
+            ->getMock();
+        $CI->model_orders = $orderModel;
+        $CI->model_orders_item = $itemModel;
+
+        $order = ['id'=>1,'bill_no'=>'ORDER1','order_mkt_multiseller'=>'ORDER1','total_order'=>100];
+        $items = [
+            ['sku'=>'SKU2','price'=>5,'quantity'=>1]
+        ];
+
+        $orderModel->expects($this->once())
+            ->method('getOrdersDatabyBill')
+            ->willReturn($order);
+        $itemModel->expects($this->once())
+            ->method('getItemsByOrderId')
+            ->with(1)
+            ->willReturn($items);
+        $orderModel->expects($this->once())
+            ->method('getInvoicedQuantitiesByOrder')
+            ->with(1)
+            ->willReturn(['SKU2' => 1]);
+
+        $orderModel->expects($this->never())->method('createInvoice');
+        $orderModel->expects($this->never())->method('updateOrderStatus');
+
+        $controller = new class extends GetOrders {
+            public function __construct() {}
+            protected function log_data($m,$a,$v,$t='I'){}
+            protected function notifyMarketplaceInvoicing(array $order, array $invoiceData): array {return ['success'=>true];}
+        };
+        $controller->int_to = 'ANY';
+
+        $response = $controller->processPartialInvoicing('ORDER1', [['sku'=>'SKU2','quantity'=>1]]);
+
+        $this->assertFalse($response['success']);
     }
 }
