@@ -1,7 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../application/libraries/CalculoFrete.php';
+require_once __DIR__ . '/../../application/libraries/CalculoFrete.php';
 
 class CalculoFreteFormatQuoteTest extends TestCase
 {
