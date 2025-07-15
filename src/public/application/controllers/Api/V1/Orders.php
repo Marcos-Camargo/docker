@@ -221,6 +221,49 @@ class Orders extends API
         $this->response(array('success' => true, "message" => $this->lang->line('api_invoice_inserted')), REST_Controller::HTTP_CREATED);
     }
 
+    public function partial_invoice_post($billNo = null)
+    {
+        $this->endPointFunction = __FUNCTION__;
+
+        if ($billNo === null) {
+            return $this->response(
+                ['success' => false, 'message' => 'Código do pedido não informado'],
+                REST_Controller::HTTP_BAD_REQUEST
+            );
+        }
+
+        $verifyInit = $this->verifyInit(false);
+        if (!$verifyInit[0]) {
+            return $this->response($verifyInit[1], REST_Controller::HTTP_UNAUTHORIZED);
+        }
+
+        $billNo = xssClean($billNo);
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $this->response(
+                ['success' => false, 'message' => 'JSON inválido'],
+                REST_Controller::HTTP_BAD_REQUEST
+            );
+        }
+
+        $items = [];
+        if (isset($payload['items']) && is_array($payload['items'])) {
+            $items = $payload['items'];
+        } elseif (isset($payload['skus']) && is_array($payload['skus'])) {
+            foreach ($payload['skus'] as $sku) {
+                $items[] = ['sku' => $sku];
+            }
+        }
+
+        require_once APPPATH . 'controllers/BatchC/Marketplace/Conectala/GetOrders.php';
+        $processor = new GetOrders();
+        $result = $processor->processPartialInvoicing($billNo, $items);
+
+        $httpCode = $result['success'] ? REST_Controller::HTTP_OK : REST_Controller::HTTP_BAD_REQUEST;
+        return $this->response($result, $httpCode);
+    }
+
     public function index_post(string $platform)
     {
         // Verificação inicial
