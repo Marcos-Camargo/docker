@@ -188,7 +188,7 @@ class Model_nfes extends CI_Model
                 ->get('orders_invoices')
                 ->row_array();
             if ($invoice) {
-                $items = $this->db->select('orders_item.sku, orders_invoice_items.qty')
+                $items = $this->db->select('orders_item.sku, orders_invoice_items.qty_invoiced as qty')
                     ->from('orders_invoice_items')
                     ->join('orders_item', 'orders_item.id = orders_invoice_items.order_item_id')
                     ->where('orders_invoice_items.invoice_id', $invoice['id'])
