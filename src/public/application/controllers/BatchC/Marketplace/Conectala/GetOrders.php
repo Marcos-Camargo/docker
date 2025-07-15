@@ -944,8 +944,11 @@ class GetOrders extends BatchBackground_Controller
                 return ['success' => false, 'message' => 'Erro ao gerar nota fiscal'];
             }
             
-            // Atualizar status do pedido
-            $this->model_orders->updateOrderStatus($order['id'], 5); // Status: Faturado
+            // Atualizar status do pedido para faturado parcialmente
+            $this->model_orders->updateOrderStatus(
+                $order['id'],
+                Model_orders::PARTIALLY_INVOICED
+            );
 
             // Notificar marketplace
             $this->notifyMarketplaceInvoicing($order, $invoice['data']);

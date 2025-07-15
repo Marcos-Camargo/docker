@@ -51,7 +51,7 @@ class PartialInvoicingTest extends TestCase
             ->willReturn(10);
         $orderModel->expects($this->once())
             ->method('updateOrderStatus')
-            ->with(1,5);
+            ->with(1,62);
         $invoiceItemModel->expects($this->once())
             ->method('getInvoicedQuantities')
             ->with(1)
@@ -112,7 +112,7 @@ class PartialInvoicingTest extends TestCase
             ->willReturn(10);
         $orderModel->expects($this->once())
             ->method('updateOrderStatus')
-            ->with(1,5);
+            ->with(1,62);
         $invoiceItemModel->expects($this->once())
             ->method('getInvoicedQuantities')
             ->with(1)
