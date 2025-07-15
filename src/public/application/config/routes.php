@@ -151,3 +151,4 @@ $route['Api/V1/financeiro/legalpanel'] = 'Api/V1/financeiro/legalpanel/LegalPane
 $route['orderToDelivered'] = 'OrderToDelivered';
 $route['orderToDelivered/update'] = 'orderToDelivered/update';
 $route['orderToDelivered/getLojasByMarketplace'] = 'OrderToDelivered/getLojasByMarketplace';
+$route['orders/(:any)/partial-invoice'] = 'Api/V1/Orders/partial_invoice/$1';

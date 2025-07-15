@@ -221,6 +221,49 @@ class Orders extends API
         $this->response(array('success' => true, "message" => $this->lang->line('api_invoice_inserted')), REST_Controller::HTTP_CREATED);
     }
 
+    public function partial_invoice_post($billNo = null)
+    {
+        $this->endPointFunction = __FUNCTION__;
+
+        if ($billNo === null) {
+            return $this->response(
+                ['success' => false, 'message' => 'Código do pedido não informado'],
+                REST_Controller::HTTP_BAD_REQUEST
+            );
+        }
+
+        $verifyInit = $this->verifyInit(false);
+        if (!$verifyInit[0]) {
+            return $this->response($verifyInit[1], REST_Controller::HTTP_UNAUTHORIZED);
+        }
+
+        $billNo = xssClean($billNo);
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $this->response(
+                ['success' => false, 'message' => 'JSON inválido'],
+                REST_Controller::HTTP_BAD_REQUEST
+            );
+        }
+
+        $items = [];
+        if (isset($payload['items']) && is_array($payload['items'])) {
+            $items = $payload['items'];
+        } elseif (isset($payload['skus']) && is_array($payload['skus'])) {
+            foreach ($payload['skus'] as $sku) {
+                $items[] = ['sku' => $sku];
+            }
+        }
+
+        require_once APPPATH . 'controllers/BatchC/Marketplace/Conectala/GetOrders.php';
+        $processor = new GetOrders();
+        $result = $processor->processPartialInvoicing($billNo, $items);
+
+        $httpCode = $result['success'] ? REST_Controller::HTTP_OK : REST_Controller::HTTP_BAD_REQUEST;
+        return $this->response($result, $httpCode);
+    }
+
     public function index_post(string $platform)
     {
         // Verificação inicial
@@ -860,6 +903,13 @@ class Orders extends API
         $resultPayment = $queryPayment->result_array();
         $resultHistoric = $queryHistoric->result_array();
 
+        $itemIds = array_column($resultOrder, 'iten_id');
+        $invoices = $this->model_nfes->getNfesDataByOrderItemIds($itemIds);
+        $invoiceByItem = [];
+        foreach ($invoices as $inv) {
+            $invoiceByItem[$inv['order_item_id']] = $inv;
+        }
+
         // Dados do pedido.
         $order = $resultOrder[0];
 
@@ -1061,9 +1111,19 @@ class Orders extends API
                 "sku_integration" => $sku_integration,
 				"campaigns" => $campaignArray,
 				"sku_marketplace" => $skumkt,
-				"return" => $returnArray,
+                "return" => $returnArray,
                 "order_item_id" => $this->changeType($iten['iten_id'], "int"),
             );
+
+            $inv = $invoiceByItem[$iten['iten_id']] ?? null;
+            $arrItems[$key]['invoice'] = $inv ? [
+                'date_emission' => $inv['date_emission'],
+                'value' => $this->changeType($inv['nfe_value'], 'float'),
+                'serie' => $this->changeType($inv['nfe_serie'], 'int'),
+                'num' => $this->changeType($inv['nfe_num'], 'int'),
+                'key' => $inv['chave'],
+                'link' => $inv['link_nfe']
+            ] : null;
 
             $commission_hierarchy_value = null;
             $commission_hierarchy_level = null;

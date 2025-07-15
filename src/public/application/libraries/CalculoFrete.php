@@ -3027,21 +3027,28 @@ class CalculoFrete {
             }
         }
         $storeIds = [];
+        $sellerIds = [];
         foreach ($arrDataAd as $sku => $data) {
             if (!in_array($data['store_id'], $storeIds)) {
                 $storeIds[] = $data['store_id'];
             }
+            if (isset($data['seller_id']) && !in_array($data['seller_id'], $sellerIds)) {
+                $sellerIds[] = $data['seller_id'];
+            }
         }
         // Se multiseller, retornar informações adicionais
         $multisellerInfo = null;
-        if (count($storeIds) > 1) {
+        if (count($storeIds) > 1 || count($sellerIds) > 1) {
             $multisellerInfo = [
                 'is_multiseller' => true,
                 'store_ids' => $storeIds,
+                'seller_ids' => $sellerIds,
                 'total_stores' => count($storeIds),
-                'items_by_store' => []
+                'total_sellers' => count($sellerIds),
+                'items_by_store' => [],
+                'items_by_seller' => []
             ];
-            
+
             // Agrupar itens por store
             foreach ($arrDataAd as $sku => $data) {
                 $storeId = $data['store_id'];
@@ -3049,6 +3056,14 @@ class CalculoFrete {
                     $multisellerInfo['items_by_store'][$storeId] = [];
                 }
                 $multisellerInfo['items_by_store'][$storeId][] = $sku;
+
+                $sellerId = $data['seller_id'] ?? null;
+                if ($sellerId !== null) {
+                    if (!isset($multisellerInfo['items_by_seller'][$sellerId])) {
+                        $multisellerInfo['items_by_seller'][$sellerId] = [];
+                    }
+                    $multisellerInfo['items_by_seller'][$sellerId][] = $sku;
+                }
             }
         }
 
@@ -3062,6 +3077,7 @@ class CalculoFrete {
             'dataQuote'         => $dataQuote,
             'storeId'           => $storeId,  // Manter para compatibilidade
             'storeIds'          => $storeIds, // Novo: array de store_ids
+            'sellerIds'         => $sellerIds, // Novo: array de seller_ids
             'logistic'          => $logistic,
             'store_integration' => $store_integration,
             'multiseller_info'  => $multisellerInfo // Novo: informações multiseller
@@ -4756,6 +4772,7 @@ class CalculoFrete {
         // Usar dados já processados de validItemsQuote
         $multisellerInfo = $validationResult['multiseller_info'];
         $storeIds = $validationResult['storeIds'];
+        $sellerIds = $validationResult['sellerIds'] ?? [];
         $arrDataAd = $validationResult['arrDataAd'];
         $dataQuote = $validationResult['dataQuote'];
         
@@ -4766,46 +4783,51 @@ class CalculoFrete {
         
         if ($multisellerInfo && $multisellerInfo['is_multiseller']) {
             // É multiseller - usar dados de validItemsQuote
-            $totalSellers = count($storeIds);
+            $totalSellers = count($sellerIds) > 0 ? count($sellerIds) : count($storeIds);
             $isMultiseller = true;
-            
-            error_log("CalculoFrete: Multiseller detectado via validItemsQuote - {$totalSellers} stores");
-            
+
+            error_log("CalculoFrete: Multiseller detectado via validItemsQuote - {$totalSellers} sellers");
+
             // Converter estrutura de validItemsQuote para formato esperado
-            foreach ($multisellerInfo['items_by_store'] as $storeId => $skus) {
-                $sellerGroups[$storeId] = [];
-                $sellerInfo[$storeId] = [
-                    'seller_id' => $storeId,
+            $groupKey = 'items_by_seller';
+            if (!empty($multisellerInfo['items_by_seller'])) {
+                $groupData = $multisellerInfo['items_by_seller'];
+            } else {
+                $groupKey = 'items_by_store';
+                $groupData = $multisellerInfo['items_by_store'];
+            }
+
+            foreach ($groupData as $sellerId => $skus) {
+                $sellerGroups[$sellerId] = [];
+                $sellerInfo[$sellerId] = [
+                    'seller_id' => $sellerId,
                     'item_count' => count($skus),
                     'product_ids' => [],
                     'data_source' => 'validItemsQuote'
                 ];
-                
+
                 foreach ($skus as $sku) {
-                    // Encontrar item original nos dados processados
                     foreach ($dataQuote['items'] as $quotedItem) {
                         if ($quotedItem['sku'] === $sku) {
-                            // Adicionar informações do seller baseadas em validItemsQuote
                             $quotedItem['seller_info'] = [
-                                'seller_id' => $storeId,
+                                'seller_id' => $sellerId,
                                 'product_id' => $arrDataAd[$sku]['prd_id'] ?? null,
                                 'sku_info' => [
                                     'original_sku' => $sku,
                                     'data_source' => 'validItemsQuote_optimized',
                                     'extraction_method' => 'sellercenter_last_post',
-                                    'store_id' => $storeId,
+                                    'store_id' => $arrDataAd[$sku]['store_id'] ?? $sellerId,
                                     'reliable' => true,
                                     'complete_data' => true
                                 ]
                             ];
-                            
-                            $sellerGroups[$storeId][] = $quotedItem;
-                            
-                            // Adicionar product_id se disponível
+
+                            $sellerGroups[$sellerId][] = $quotedItem;
+
                             if (isset($arrDataAd[$sku]['prd_id'])) {
-                                $sellerInfo[$storeId]['product_ids'][] = $arrDataAd[$sku]['prd_id'];
+                                $sellerInfo[$sellerId]['product_ids'][] = $arrDataAd[$sku]['prd_id'];
                             }
-                            
+
                             break;
                         }
                     }
