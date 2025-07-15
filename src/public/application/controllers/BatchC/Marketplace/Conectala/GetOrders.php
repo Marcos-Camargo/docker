@@ -77,6 +77,7 @@ class GetOrders extends BatchBackground_Controller
         $this->load->model('model_log_integration_order_marketplace');
         $this->load->model('model_orders_payment');
         $this->load->model('model_orders_item');
+        $this->load->model('model_orders_invoice_items');
         $this->load->model('model_settings');
         $this->load->model('model_quotes_ship');
         $this->load->model('model_log_quotes');
@@ -913,6 +914,28 @@ class GetOrders extends BatchBackground_Controller
             // Processar faturamento
             $invoiceData = $this->generateInvoiceData($order, $items);
             $invoiceId = $this->model_orders->createInvoice($invoiceData);
+
+            if ($invoiceId) {
+                $orderItems = $this->model_orders_item->getItemsByOrderId($order['id']);
+                $map = [];
+                foreach ($items as $it) {
+                    $map[$it['sku']] = $it['quantity'] ?? null;
+                }
+                $invoiceItems = [];
+                foreach ($orderItems as $orderItem) {
+                    if (!empty($items) && !array_key_exists($orderItem['sku'], $map)) {
+                        continue;
+                    }
+                    $quantity = $map[$orderItem['sku']] ?? $orderItem['quantity'];
+                    $invoiceItems[] = [
+                        'invoice_id' => $invoiceId,
+                        'sku' => $orderItem['sku'],
+                        'quantity' => $quantity,
+                        'price' => $orderItem['price']
+                    ];
+                }
+                $this->model_orders_invoice_items->createItems($invoiceItems);
+            }
             
             if (!$invoiceId) {
                 return ['success' => false, 'message' => 'Erro ao gerar nota fiscal'];
@@ -1548,6 +1571,11 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
             
             // Buscar itens do pedido
             $orderItems = $this->model_orders_item->getItemsByOrderId($orderId);
+            $invoiced = $this->model_orders_invoice_items->getInvoicedQuantities($orderId);
+            $invoicedMap = [];
+            foreach ($invoiced as $inv) {
+                $invoicedMap[$inv['sku']] = $inv['quantity'];
+            }
             
             if (empty($orderItems)) {
                 return ['valid' => false, 'message' => 'Pedido não possui itens'];
@@ -1573,7 +1601,9 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
                     
                     $orderItem = reset($orderItem);
                     
-                    if ($item['quantity'] > $orderItem['quantity']) {
+                    $already = $invoicedMap[$item['sku']] ?? 0;
+                    $available = $orderItem['quantity'] - $already;
+                    if ($item['quantity'] > $available) {
                         return ['valid' => false, 'message' => "Quantidade solicitada para SKU {$item['sku']} maior que disponível"];
                     }
                 }
