@@ -3985,7 +3985,11 @@ class Model_orders extends CI_Model
     }
 
    public function createInvoice($invoiceData, array $items = []) {
-        $this->db->insert('orders_invoices', $invoiceData);
+        $insert = $this->db->insert('orders_invoices', $invoiceData);
+        if (!$insert) {
+            return false;
+        }
+
         $invoiceId = $this->db->insert_id();
 
         if ($invoiceId && !empty($items)) {
@@ -4015,7 +4019,7 @@ class Model_orders extends CI_Model
             }
         }
 
-        return $invoiceId ?: false;
+        return $invoiceId;
     }
 
     public function getInvoiceItems(int $invoiceId): array {
