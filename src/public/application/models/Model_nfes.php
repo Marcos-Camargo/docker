@@ -182,7 +182,24 @@ class Model_nfes extends CI_Model
 
         $sql = "SELECT * FROM nfes WHERE order_id = ? {$more}";
         $query = $this->db->query($sql, array($order_id));
-        if($query->num_rows() == 0) return $result;
+
+        if($query->num_rows() == 0) {
+            $invoice = $this->db->where('order_id', $order_id)
+                ->get('orders_invoices')
+                ->row_array();
+            if ($invoice) {
+                $items = $this->db->select('orders_item.sku, orders_invoice_items.qty')
+                    ->from('orders_invoice_items')
+                    ->join('orders_item', 'orders_item.id = orders_invoice_items.order_item_id')
+                    ->where('orders_invoice_items.invoice_id', $invoice['id'])
+                    ->get()
+                    ->result_array();
+
+                $invoice['items'] = $items;
+                return $invoice;
+            }
+            return $result;
+        }
 
         foreach ($query->result_array() as $nfe){
             $dataExp = explode(" ", $nfe['date_emission']);
