@@ -969,3 +969,260 @@ OBS: sugiro utilizar a api de returns criada para a genius
 OBS2: validar se o comportamento do parâmetro cancellation_commission_calculate_campaign permanece funcionando com as demais devoluções
 
 Motivo do Impedimento
+
+
+____________________________________________________________________________________________________________________
+https://conectala.atlassian.net/browse/OEP-1814
+Projetos
+Squad Onboarding & P...
+
+OEP-2008
+
+OEP-2014
+
+
+Permitir Cancelamento Parcial de pedidos via Integração
+
+Adicionar
+
+Apps
+Geral
+Estimativa
+Informações adicionais
+
+Descrição
+
+Solução
+
+Alterar regra de cancelamento parcial de pedidos para permitir cancelamento de skus de pedidos não gatilhados no financeiro
+
+Remover a trava da feature de cancelamento parcial, para que seja possível cancelar pedidos parcialmente que estejam no status de faturado e enviado (assim como já é possivel realizar para pedidos pagos), caso o usuário tenha permissão de cancelamento parcial do pedido.
+
+O botão de cancelamento parcial deve ser exibido apenas se a data de pagamento do pedido no financeiro não estiver preenchida (OEP-1814: Impedir cancelamento pós status de gatilho (Entregue e enviado)
+PRONTO PRA PRODUÇÃO
+), caso contrario o botão não estará disponível em tela e o usuário deverá realizar uma devolução
+
+A tela deverá exibir os mesmos campos para que o lojista ou o marketplace realizem o cancelamento apenas de 1 ou mais itens do pedido e não do pedido todo.
+
+image-20250709-150457.png
+image-20250709-150505.png
+Para skus ou pedidos que já estiverem faturados e enviados, após o usuário clicar em confirmar, abrir um popup para que seja confirmada a ação informando que esta ação será realizada imediatamente e que é irreversível. O pedido deverá ser atualizado no seller center e notificará a vtex do cancelamento do item (OEP-1561: Cancelamento Parcial de Pedidos
+EM PRODUÇÃO
+).
+
+SKus e pedidos que ainda não estiverem faturados poderão ter seu cancelamento parcial revertido enquanto não forem faturados (conforme feature ja implementada OEP-1561: Cancelamento Parcial de Pedidos
+EM PRODUÇÃO
+ )
+
+Permitir cancelamento parcial de pedidos via integração
+
+Ao realizar um cancelamento total ou parcial de pedidos na Vertem, refletir via programa de integração o cancelamento no marketplace do pedido
+
+
+
+{
+    "order": {
+        "date": "2020-02-19 11:52:09",
+        "reason": "Pedido cancelado por falta de estoque"
+        
+        "skus":[
+            {"123_abc","456_def","789_ghi"}
+            ]
+        
+    }
+}
+Caso todos os skus do pedido na Vertem sejam cancelados, enviar a atualização com todos os skus para o marketplace do pedido original
+
+Caso apenas alguns skus sejam cancelados na Vertem (Cancelamento parcial), atualizar enviar o cancelamento parcial via api
+
+_________________________________________________________________________________________________________________________________________________________
+Projetos
+https://conectala.atlassian.net/browse/OEP-2010
+Squad Onboarding & P...
+
+OEP-2008
+
+OEP-2010
+
+
+Permitir Atualização de Envio Parcial de pedidos no Seller Center
+
+Adicionar
+
+Apps
+Geral
+Estimativa
+Informações adicionais
+
+Descrição
+
+Solução
+
+Criar status de Enviado Parcialmente
+
+Quando qualquer item do pedido estiver no status de enviado, e todos os demais itens ainda não tiverem recebido nota envio ou entrega, o pedido deverá ser atualizado para o novo status “Enviado Parcialmente”
+
+Quando todos os skus de um pedido forem faturados o pedido será alterado para o status de “Enviado“ atual do sistema
+
+Até que o primeiro sku ou todos os skus sejam enviados o pedido deverá permanecer no status de faturado atual (Aguardando Coleta/envio)
+
+Alterar api de criar rastreamento para receber o rastreio e os envios por SKU
+
+Incluir na api de inserção de rastreamento o campo para que o integrador envie se o rastreio será criado apenas para o sku enviado
+
+
+
+{
+    "tracking": {
+        "date_tracking": "2020-01-16 10:15:37",
+
+
+
+        "individual_tracking": true,
+
+
+
+        "items": [
+            {
+                "sku": "GG007",
+                "qty": 1,
+                "code": "AA123456789BB",
+                "method": "SEDEX",
+                "service_id": "03220",
+                "value": 10.90,
+                "delivery_date": "",
+                "url_label_a4": "",
+                "url_label_thermic": "",
+                "url_label_zpl": "",
+                "url_plp": ""
+            }
+        ],
+        "track": {   
+            "carrier": "CORREIOS",
+            "carrier_cnpj": "",
+            "url": " https://www2.correios.com.br/sistemas/rastreamento/"
+        }
+    }
+}'
+Caso o campo individual_tracking seja enviado como true, criar o rastreamento apenas para os skus enviados atualizando os skus para Aguardando coleta - Rastreio externo
+
+Caso o campo individual_tracking seja enviado como false, ou não seja enviado, criar o rastreamento para o pedido todo atualizando o pedido para Aguardando coleta - Rastreio externo
+
+Alterar api de envio de pedidos para permitir enviar skus individualmente
+
+Incluir o objeto skus na chamada de atualização de pedidos para enviado
+
+
+
+{
+    "shipment": {
+        "shipped_date": "2021-11-24 13:47:23",
+        
+        "skus":[
+            {"123_abc","456_def","789_ghi"}
+            ]
+        
+        
+    }
+}
+Caso todos os skus sejam enviados na chamada, atualizar o status diretamente no pedido
+
+Caso nenhum sku seja enviado na chamada, atualizar o status diretamente no pedido
+
+Caso nem todos os skus sejam enviados na chamada mas seja enviado pelo menos 1, enviar o pedido parcialmente e atualizar o sku para enviado
+
+Alterar a tela de fretes a contratar para permitir incluir rastreio por skus
+
+Na tela de Fretes a Contratar incluir um botão para que o usuário possa contratar os fretes dos skus parcialmente
+
+Visualização indisponível
+Visualização indisponível
+Os dados de rastreio e envio devem ser possíveis de visualizar no botão de status do item na tela de pedidos
+
+Visualização indisponível
+Visualização indisponível
+Alterar a tela de pedidos para permitir coletar itens por sku
+
+Na tela de Marcar como Coletado, incluir um botão para coletar parcialmente as vendas
+
+Quando o usuário clicar no botão deverão ser exibidos todos os itens do pedido para que o usuário escolha quais itens serão faturados
+
+Quando clicar para coletar individualmente deverá ser solicitado apenas a data de coleta
+
+Visualização indisponível
+Visualização indisponível
+Visualização indisponível
+também deverá ser possível marcar o item como coletado clicando no botão Coletar na linha do item no pedido
+
+Alterar programa de faturamento Vtex
+
+Alterar o programa de envio de rastreamento para o marketplace Vtex para enviar os códigos de rastreio apenas dos skus enviados
+
+Alterar programa de atualização de pedidos Vertem
+
+Alterar programa de atualização de pedidos Vertem para enviar na integração Conecta Lá sempre os skus na chamada de criar rastreamento para os itens alterados
+
+Alterar programa de atualização de pedidos Vertem para enviar na integração Conecta Lá sempre os skus na chamada de atualização de envio para os itens alterados
+
+Alterar Gets de pedidos na API
+
+Incluir nos Gets por Id e geral da api de pedidos, o objeto tracking e label dentro do objeto items
+
+
+
+,
+      "items": [
+        {
+          "remote_store_id": "10",
+          "qty": 1,
+          "product_id": "9369",
+          "original_price": 25,
+          "total_price": 25,
+          "name": "Shampoo",
+          "sku": "12345",
+          "discount": 0,
+          "unity": "Un",
+          "gross_weight": 0.2,
+          "width": 10,
+          "height": 30,
+          "depth": 4,
+          "measured_unit": "cm",
+          "variant_order": null,
+          "sku_variation": null,
+          "freight_service_fee": 0,
+          "product_fee": 0,
+          "sku_integration": "88658229",
+          "campaigns": [],
+          "sku_marketplace": null,
+          "return": [],
+          "commission_hierarchy_value": null,
+          "commission_hierarchy_level": null,
+          "commission_hierarchy_id": null
+          
+        "tracking": {
+            "date_label": "2020-01-16 10:15:37",
+            "file_a4": null,
+            "file_thermal": null,
+            "file_zpl": null,
+            "file_plp": null,
+            "tracking_code": [
+                "AA123456789BB"
+            ],
+            "number_plp": null,
+            "tracking_url": "https://www2.correios.com.br/sistemas/rastreamento/"
+        },
+        "label": [
+            {
+                "file_a4": "https://teste.conectala.com.br/app/Tracking/printLabel/eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJvcmRlcnMiOlsiNTE3MDA0NzA5Il0sImlhdCI6MTc1MjA2ODgwNCwiZXhwIjoxNzUyMTU1MjA0fQ.XS5w-rzdH8v10amiofTf6UeUHPMVBur6XMZDPzUtP4k",
+                "file_thermal": null,
+                "file_zpl": null,
+                "file_plp": null,
+                "tracking_code": "AA123456789BB",
+                "number_plp": null,
+                "tracking_url": "https://www2.correios.com.br/sistemas/rastreamento/"
+            }
+        ],
+          
+          
+            
+        }
