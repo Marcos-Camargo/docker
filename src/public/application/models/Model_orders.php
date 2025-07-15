@@ -3915,8 +3915,34 @@ class Model_orders extends CI_Model
         $this->db->where('id', $order_id);
         return $this->db->update('orders', $updateData);
     }
-   public function createInvoice($invoiceData) {
+    public function createInvoice($invoiceData) {
         return $this->db->insert('orders_invoices', $invoiceData);
+    }
+
+    public function createInvoiceItem($data) {
+        return $this->db->insert('orders_invoice_items', $data);
+    }
+
+    public function getInvoiceItem($id) {
+        $this->db->where('id', $id);
+        $query = $this->db->get('orders_invoice_items');
+        return $query->row_array();
+    }
+
+    public function getInvoiceItemsByInvoice($invoice_id) {
+        $this->db->where('invoice_id', $invoice_id);
+        $query = $this->db->get('orders_invoice_items');
+        return $query->result_array();
+    }
+
+    public function updateInvoiceItem($id, $data) {
+        $this->db->where('id', $id);
+        return $this->db->update('orders_invoice_items', $data);
+    }
+
+    public function deleteInvoiceItem($id) {
+        $this->db->where('id', $id);
+        return $this->db->delete('orders_invoice_items');
     }
 
     public function getOrderByBillNo($bill_no) {
