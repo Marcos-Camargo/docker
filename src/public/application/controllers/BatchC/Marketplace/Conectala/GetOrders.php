@@ -910,6 +910,7 @@ class GetOrders extends BatchBackground_Controller
                 }
             }
             
+
             // Processar faturamento
             $invoice = $this->generateInvoiceData($order, $items);
 
