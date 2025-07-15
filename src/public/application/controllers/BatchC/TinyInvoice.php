@@ -326,6 +326,7 @@ class TinyInvoice extends BatchBackground_Controller {
 
             /** DADOS ITENS */
             $dataSend['nota_fiscal']["itens"] = array();
+            $itemsInvoiceRecord = array();
             foreach ($dataItemsOrder as $iten){
                 echo "Consultando item do pedido, id_iten: {$iten['id']}\n";
 
@@ -349,11 +350,24 @@ class TinyInvoice extends BatchBackground_Controller {
                     continue 2;
                 }
 
+                // Quantidade já faturada para este item
+                $query = $this->db->query(
+                    "SELECT SUM(qty) AS qty FROM orders_invoice_items WHERE order_id = ? AND item_id = ?",
+                    array($order_id, $iten['id'])
+                );
+                $invoiced = $query->row_array();
+                $alreadyInvoiced = isset($invoiced['qty']) ? (float)$invoiced['qty'] : 0;
+                $qtyPending = (float)$iten['qty'] - $alreadyInvoiced;
+
+                if ($qtyPending <= 0) {
+                    continue; // item totalmente faturado
+                }
+
                 array_push($dataSend['nota_fiscal']["itens"], array('item' => array(
                     "codigo"        => $iten['product_id'],
                     "descricao"     => $iten['name'],
                     "unidade"       => mb_strtoupper($iten['un']),
-                    "quantidade"    => (float)$iten['qty'],
+                    "quantidade"    => $qtyPending,
                     "valor_unitario"=> (float)$iten['amount'],
                     "tipo"          => "P", // produto("P") ou serviço("S")
                     "origem"        => (int)$dataProduct['origin'],
@@ -363,6 +377,17 @@ class TinyInvoice extends BatchBackground_Controller {
                     "peso_liquido"  => (float)$dataProduct['peso_liquido'],
                     "gtin_ean"      => $dataProduct['EAN']
                 )));
+
+                $itemsInvoiceRecord[] = array('item_id' => $iten['id'], 'qty' => $qtyPending);
+            }
+
+            if (count($dataSend['nota_fiscal']["itens"]) === 0) {
+                $msgError = "Pedido {$order_id} sem itens pendentes para faturar";
+                echo "{$msgError} \n";
+                $this->log_data('batch',$log_name,$msgError,"E");
+                $this->mynfes->updateNfeForIntegration(array('error_message' => $msgError), $order_id);
+                $this->myorders->updatePaidStatus($order_id, 57);
+                continue;
             }
             /** FIM DADOS ITENS */
 
@@ -516,6 +541,15 @@ class TinyInvoice extends BatchBackground_Controller {
 
                     $this->mynfes->create($dataInsertNfe);
                     echo "Crio NFE na tabela\n";
+
+                    // Registra itens faturados
+                    foreach ($itemsInvoiceRecord as $record) {
+                        $this->db->insert('orders_invoice_items', array(
+                            'order_id' => $order_id,
+                            'item_id'  => $record['item_id'],
+                            'qty'      => $record['qty']
+                        ));
+                    }
 
                     $this->mynfes->deleteInvoiceIntegration($order_id, $store_id, $company_id);
 
