@@ -677,7 +677,7 @@ class GetOrders extends BatchBackground_Controller
      * @return  void
      * @throws  Exception
      */
-    private function newOrder(array $content): void
+    protected function newOrder(array $content): void
     {
         $log_name                       = __CLASS__.'/'.__FUNCTION__;
         $datas_created                  = array();
@@ -1431,7 +1431,7 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
      * @param array $content
      * @return array
      */
-    private function createBrokenOrdersWithUniqueIds(array $content): array
+    protected function createBrokenOrdersWithUniqueIds(array $content): array
     {
         $log_name = __CLASS__ . '/' . __FUNCTION__;
         
