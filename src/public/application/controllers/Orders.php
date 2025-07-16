@@ -1291,15 +1291,15 @@ class Orders extends Admin_Controller
                 redirect('orders/create', 'refresh');
             }
 
-            // create items
-            $orderItem = array();
-            $totalProducts = 0;
-            $totalDiscount = 0;
+// create items grouped by store
+            $orderItem = [];
+            $totalProductsStore = [];
+            $totalDiscountStore = [];
+            $stores = $this->postClean('store_id');
             for ($iten = 0; $iten < count($this->postClean('product_id')); $iten++) {
 
                 $productId = $this->postClean('product_id')[$iten];
                 $variant = '';
-                $dataVariant = null;
                 $expProductId = explode('-', $productId);
                 if (count($expProductId) > 1) {
                     $variant = $expProductId[1];
@@ -1314,11 +1314,12 @@ class Orders extends Admin_Controller
                 }
 
                 $sku = $dataProduct['sku'];
-                if (count($expProductId) > 1) {
+                if ($variant !== '') {
                     $sku .= "-$variant";
                 }
 
-                $orderItem[] = array(
+                $storeId = (int)$stores[$iten];
+                $orderItem[$storeId][] = array(
                     'order_id'      => null,
                     'product_id'    => $productId,
                     'sku'           => $sku,
@@ -1334,97 +1335,104 @@ class Orders extends Admin_Controller
                     'profundidade'  => $dataProduct['profundidade'],
                     'unmedida'      => 'cm',
                     'company_id'    => $this->postClean('company'),
-                    'store_id'      => $this->postClean('store'),
+                    'store_id'      => $storeId,
                     'variant'       => $variant
                 );
-                $totalProducts += (float)$this->postClean('product_price_total')[$iten];
-                $totalDiscount += (float)number_format(((float)$this->postClean('product_discount')[$iten] * (int)$this->postClean('product_stock')[$iten]), 2, '.', '');
-            }
-            if ($sellerCenter['value'] == 'somaplace') {
-                $totalProducts += $totalDiscount;
-            }
-            $grossAmount = $totalProducts + $this->fmtNum($this->postClean('ship_value'));
-            $netAmount = $grossAmount;
-            if ($sellerCenter['value'] == 'somaplace') {
-                $netAmount -= $totalDiscount;
+                if (!isset($totalProductsStore[$storeId])) {
+                    $totalProductsStore[$storeId] = 0;
+                    $totalDiscountStore[$storeId] = 0;
+                }
+                $totalProductsStore[$storeId] += (float)$this->postClean('product_price_total')[$iten];
+                $totalDiscountStore[$storeId] += (float)number_format(((float)$this->postClean('product_discount')[$iten] * (int)$this->postClean('product_stock')[$iten]), 2,'.', '');
             }
 
-            // valores do pedido
-            $netAmount = $grossAmount * ((100 - $this->postClean('tax_service')) / 100);
-            $taxService = $grossAmount - $netAmount;
+            $orderIds = [];
+            foreach ($orderItem as $storeId => $items) {
+                $totalProducts = $totalProductsStore[$storeId];
+                $totalDiscount = $totalDiscountStore[$storeId];
+                if ($sellerCenter['value'] == 'somaplace') {
+                    $totalProducts += $totalDiscount;
+                }
+                $grossAmount = $totalProducts + $this->fmtNum($this->postClean('ship_value'));
+                $netAmount = $grossAmount;
+                if ($sellerCenter['value'] == 'somaplace') {
+                    $netAmount -= $totalDiscount;
+                }
 
-            // get store
-            $dataStore = $this->model_stores->getStoresData($this->postClean('store'));
+                $netAmount = $grossAmount * ((100 - $this->postClean('tax_service')) / 100);
+                $taxService = $grossAmount - $netAmount;
 
-            // create order
-            $orderMkt = 'TEST-' . time();
-            $arrOrder = array(
-                'bill_no'                       => $orderMkt,
-                'numero_marketplace'            => $orderMkt,
-                'customer_id'                   => $client_id,
-                'customer_name'                 => $this->postClean('customer_name'),
-                'customer_address'              => $this->postClean('address'),
-                'customer_phone'                => preg_replace('/[^\d\+]/', '', trim($this->postClean('customer_phone1'))),
-                'date_time'                     => date('Y-m-d H:i:s'),
-                'total_order'                   => $totalProducts,
-                'discount'                      => $totalDiscount,
-                'net_amount'                    => $netAmount,
-                'total_ship'                    => $this->fmtNum($this->postClean('ship_value')),
-                'gross_amount'                  => $grossAmount,
-                'service_charge_rate'           => $this->postClean('tax_service'),
-                'service_charge'                => $taxService,
-                'vat_charge_rate'               => 0,
-                'vat_charge'                    => 0,
-                'paid_status'                   => $this->postClean('status'),
-                'user_id'                       => $this->session->userdata('id'),
-                'company_id'                    => $this->postClean('company'),
-                'origin'                        => $this->postClean('origin'),
-                'store_id'                      => $this->postClean('store'),
-                'customer_address_num'          => $this->postClean('addr_num'),
-                'customer_address_compl'        => $this->postClean('addr_compl'),
-                'customer_address_neigh'        => $this->postClean('addr_neigh'),
-                'customer_address_city'         => $this->postClean('addr_city'),
-                'customer_address_uf'           => $this->postClean('addr_uf'),
-                'customer_address_zip'          => preg_replace('/[^\d\+]/', '', trim($this->postClean('zipcode'))),
-                'data_limite_cross_docking'     => $this->postClean('data_limite_cross_docking') ?? null,
-                'data_entrega'                  => $this->postClean('data_entrega') ?? null,
-                'data_envio'                    => $this->postClean('data_envio') ?? null,
-                'customer_reference'            => $this->postClean('customer_reference'),
-                'data_pago'                     => $this->postClean('data_pago') ?? null,
-                'ship_company_preview'          => $this->postClean('ship_company_preview'),
-                'ship_service_preview'          => $this->postClean('ship_service_preview'),
-                'ship_time_preview'             => $this->postClean('ship_time_preview'),
-                'freight_seller'                => $dataStore['freight_seller'] ?? 0,
-                'service_charge_freight_value'  => $dataStore['service_charge_freight_value'] ?? 0,
-                'order_manually'                => 1
-            );
+                $dataStore = $this->model_stores->getStoresData($storeId);
 
-            $settingSellerCenter = $this->model_settings->getSettingDatabyName('sellercenter');
-            $sellerCenter = $settingSellerCenter['value'];
+                $orderMkt = 'TEST-' . time() . '-' . $storeId;
+                $arrOrder = array(
+                    'bill_no'                       => $orderMkt,
+                    'numero_marketplace'            => $orderMkt,
+                    'customer_id'                   => $client_id,
+                    'customer_name'                 => $this->postClean('customer_name'),
+                    'customer_address'              => $this->postClean('address'),
+                    'customer_phone'                => preg_replace('/[^\d\+]/', '', trim($this->postClean('customer_phone1'))),
+                    'date_time'                     => date('Y-m-d H:i:s'),
+                    'total_order'                   => $totalProducts,
+                    'discount'                      => $totalDiscount,
+                    'net_amount'                    => $netAmount,
+                    'total_ship'                    => $this->fmtNum($this->postClean('ship_value')),
+                    'gross_amount'                  => $grossAmount,
+                    'service_charge_rate'           => $this->postClean('tax_service'),
+                    'service_charge'                => $taxService,
+                    'vat_charge_rate'               => 0,
+                    'vat_charge'                    => 0,
+                    'paid_status'                   => $this->postClean('status'),
+                    'user_id'                       => $this->session->userdata('id'),
+                    'company_id'                    => $this->postClean('company'),
+                    'origin'                        => $this->postClean('origin'),
+                    'store_id'                      => $storeId,
+                    'customer_address_num'          => $this->postClean('addr_num'),
+                    'customer_address_compl'        => $this->postClean('addr_compl'),
+                    'customer_address_neigh'        => $this->postClean('addr_neigh'),
+                    'customer_address_city'         => $this->postClean('addr_city'),
+                    'customer_address_uf'           => $this->postClean('addr_uf'),
+                    'customer_address_zip'          => preg_replace('/[^\d\+]/', '', trim($this->postClean('zipcode'))),
+                    'data_limite_cross_docking'     => $this->postClean('data_limite_cross_docking') ?? null,
+                    'data_entrega'                  => $this->postClean('data_entrega') ?? null,
+                    'data_envio'                    => $this->postClean('data_envio') ?? null,
+                    'customer_reference'            => $this->postClean('customer_reference'),
+                    'data_pago'                     => $this->postClean('data_pago') ?? null,
+                    'ship_company_preview'          => $this->postClean('ship_company_preview'),
+                    'ship_service_preview'          => $this->postClean('ship_service_preview'),
+                    'ship_time_preview'             => $this->postClean('ship_time_preview'),
+                    'freight_seller'                => $dataStore['freight_seller'] ?? 0,
+                    'service_charge_freight_value'  => $dataStore['service_charge_freight_value'] ?? 0,
+                    'order_manually'                => 1
+                );
 
-            if ($sellerCenter != 'conectala') {
-                $arrOrder['total_order']    = $totalProducts + $totalDiscount;
-                $arrOrder['gross_amount']   = $totalProducts + $totalDiscount + $arrOrder['total_ship'];
-                $arrOrder['net_amount']     = $arrOrder['gross_amount'] - $totalDiscount;
-            }
+                $settingSellerCenter = $this->model_settings->getSettingDatabyName('sellercenter');
+                $sellerCenter = $settingSellerCenter['value'];
 
+                if ($sellerCenter != 'conectala') {
+                    $arrOrder['total_order']    = $totalProducts + $totalDiscount;
+                    $arrOrder['gross_amount']   = $totalProducts + $totalDiscount + $arrOrder['total_ship'];
+                    $arrOrder['net_amount']     = $arrOrder['gross_amount'] - $totalDiscount;
+                }
 
-            $order_id = $this->model_orders->insertOrder($arrOrder);
-            if (!$order_id) {
-                $this->db->trans_rollback();
-                $this->session->set_flashdata('error', 'Erro para criar o pedido!');
-                redirect('orders/create', 'refresh');
-            }
-
-            //add order id nos itens e cria
-            foreach ($orderItem as $key => $iten) {
-                $orderItem[$key]['order_id'] = $order_id;
-                $order_iten = $this->model_orders->insertItem($orderItem[$key]);
-                if (!$order_iten) {
+                $order_id = $this->model_orders->insertOrder($arrOrder);
+                if (!$order_id) {
                     $this->db->trans_rollback();
-                    $this->session->set_flashdata('error', 'Erro para criar o item do pedido!');
+                    $this->session->set_flashdata('error', 'Erro para criar o pedido!');
                     redirect('orders/create', 'refresh');
                 }
+
+                foreach ($items as $key => $iten) {
+                    $items[$key]['order_id'] = $order_id;
+                    $order_iten = $this->model_orders->insertItem($items[$key]);
+                    if (!$order_iten) {
+                        $this->db->trans_rollback();
+                        $this->session->set_flashdata('error', 'Erro para criar o item do pedido!');
+                        redirect('orders/create', 'refresh');
+                    }
+                }
+
+                $orderIds[] = $order_id;
             }
 
             // create payments

@@ -197,13 +197,6 @@ class GetOrders extends BatchBackground_Controller
                 $store_id = $integration_last_post['store_id'];
             }
 
-            if ($store_id != $integration_last_post['store_id'] && !$this->enable_multiseller_operation) {
-                $message = "Pedido $orderMarketplace com produtos de lojas diferente lojas=($store_id e {$integration_last_post['store_id']}). Cancelar Pedido.";
-                echo "$message\n";
-                $this->log_data('batch ',$log_name, $message, "E");
-
-                throw new Exception($message);
-            }
         }
 
         if ($store_id === null) {
