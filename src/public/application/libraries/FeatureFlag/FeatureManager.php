@@ -50,10 +50,16 @@ class FeatureManager
         // Configuração do cache Redis
         $cacheHandler = new RedisCacheHandler($cacheInMinutes * 60);
 
-        $appUrl = 'https://unleash.conectala.com.br/api/';
-        $token = 'default:development.cfd771fa8449f0ab5fd18240e4ec95788eab71c2b01b6e6150673cbf';
-        if (ENVIRONMENT === 'production' || ENVIRONMENT === 'production_x') {
-            $token = 'default:production.98d3c5647a9d0c573180de1d57d427eaa9ac9858cd22213c1713b107';
+        $appUrl = getenv('UNLEASH_API_URL') ?: get_instance()->model_settings->getValueIfAtiveByName('unleash_api_url');
+        $token = getenv('UNLEASH_API_TOKEN') ?: get_instance()->model_settings->getValueIfAtiveByName('unleash_api_token');
+        if (!$appUrl) {
+            $appUrl = 'https://unleash.conectala.com.br/api/';
+        }
+        if (!$token) {
+            $token = 'default:development.cfd771fa8449f0ab5fd18240e4ec95788eab71c2b01b6e6150673cbf';
+            if (ENVIRONMENT === 'production' || ENVIRONMENT === 'production_x') {
+                $token = 'default:production.98d3c5647a9d0c573180de1d57d427eaa9ac9858cd22213c1713b107';
+            }
         }
 
         // Create HTTP client with timeout

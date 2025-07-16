@@ -24,9 +24,14 @@ edited through the administration panel or inserted manually during setup.
   multiseller orders.
 * Setting `enable_multiple_returns_per_order` – when active the platform allows
   creating more than one return for a single order.
-* `POST /api/v1/partial-shipping` – placeholder endpoint for partial shipping
-  updates. It currently responds with a not implemented message while OEP‑2008
-  is under development.
+* `POST /api/v1/partial-shipping` – updates shipping information for multiseller
+  orders. The route maps to `Api/V1/PartialShipping/index` and calls the batch
+  process responsible for handling partial shipments.
+* Environment variable `UNLEASH_API_URL` – overrides the Unleash endpoint. When
+  unset the value from the `unleash_api_url` setting is used or a built‑in
+  default.
+* Environment variable `UNLEASH_API_TOKEN` – token used to access Unleash. If
+  absent the `unleash_api_token` setting or a predefined token is used.
 
 When `multiseller_freight_results` is enabled the quote response is modified so
 that the cheapest option uses the name from `lowest_price` and the fastest uses

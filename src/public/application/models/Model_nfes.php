@@ -188,7 +188,7 @@ class Model_nfes extends CI_Model
                 ->get('orders_invoices')
                 ->row_array();
             if ($invoice) {
-                $items = $this->db->select('orders_item.sku, orders_invoice_items.qty')
+                $items = $this->db->select('orders_item.sku, orders_invoice_items.qty_invoiced as qty')
                     ->from('orders_invoice_items')
                     ->join('orders_item', 'orders_item.id = orders_invoice_items.order_item_id')
                     ->where('orders_invoice_items.invoice_id', $invoice['id'])
@@ -263,10 +263,13 @@ class Model_nfes extends CI_Model
         if (empty($item_ids)) {
             return [];
         }
-
         return $this->db
-            ->where_in('order_item_id', $item_ids)
-            ->get('nfes')
+            ->select('nfes.*, oii.order_item_id')
+            ->from('orders_invoice_items oii')
+            ->join('orders_invoices oi', 'oi.id = oii.invoice_id')
+            ->join('nfes', 'nfes.order_id = oi.order_id')
+            ->where_in('oii.order_item_id', $item_ids)
+            ->get()
             ->result_array();
     }
 

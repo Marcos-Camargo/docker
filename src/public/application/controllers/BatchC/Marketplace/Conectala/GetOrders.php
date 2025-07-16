@@ -5,8 +5,8 @@ Atualiza pedidos que chegaram na Novo Mundo SC
 
 */   
 
-// require 'Marketplace/Conectala/Integration.php';
-require APPPATH . "controllers/BatchC/Marketplace/Conectala/Integration.php";
+// require 'Marketplace/Conectala/ConectalaIntegration.php';
+require APPPATH . "controllers/BatchC/Marketplace/Conectala/ConectalaIntegration.php";
 
 /**
  * @property CI_Loader $load
@@ -85,7 +85,7 @@ class GetOrders extends BatchBackground_Controller
         $this->load->library('calculoFrete');
 
 
-		$this->integration = new Integration();
+        $this->integration = new ConectalaIntegration();
 	}
 
 	// php index.php BatchC/Marketplace/Conectala/GetOrders run null NM
@@ -404,6 +404,10 @@ class GetOrders extends BatchBackground_Controller
 
         if ($order['http_code'] == 200) {
             $content = json_decode($order['content'], true);
+
+            if (!is_array($content) || json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception("Resposta inválida ao consultar o pedido {$line_item['order_code']}");
+            }
 
             if (!$content['success']) {
                 throw new Exception($content['message'] ?? "Não foi possível consultar o pedido {$line_item['order_code']}");
@@ -915,40 +919,21 @@ class GetOrders extends BatchBackground_Controller
 
             // Processar faturamento
             $invoiceData = $this->generateInvoiceData($order, $items);
-            $invoiceId = $this->model_orders->createInvoice($invoiceData);
-
-            if ($invoiceId) {
-                $orderItems = $this->model_orders_item->getItemsByOrderId($order['id']);
-                $map = [];
-                foreach ($items as $it) {
-                    $map[$it['sku']] = $it['quantity'] ?? null;
-                }
-                $invoiceItems = [];
-                foreach ($orderItems as $orderItem) {
-                    if (!empty($items) && !array_key_exists($orderItem['sku'], $map)) {
-                        continue;
-                    }
-                    $quantity = $map[$orderItem['sku']] ?? $orderItem['quantity'];
-                    $invoiceItems[] = [
-                        'invoice_id' => $invoiceId,
-                        'sku' => $orderItem['sku'],
-                        'quantity' => $quantity,
-                        'price' => $orderItem['price']
-                    ];
-                }
-                $this->model_orders_invoice_items->createItems($invoiceItems);
-            }
+            $invoiceId = $this->model_orders->createInvoice($invoiceData['data'], $invoiceData['items']);
 
             
             if (!$invoiceId) {
                 return ['success' => false, 'message' => 'Erro ao gerar nota fiscal'];
             }
             
-            // Atualizar status do pedido
-            $this->model_orders->updateOrderStatus($order['id'], 5); // Status: Faturado
+            // Atualizar status do pedido para faturado parcialmente
+            $this->model_orders->updateOrderStatus(
+                $order['id'],
+                Model_orders::PARTIALLY_INVOICED
+            );
 
             // Notificar marketplace
-            $this->notifyMarketplaceInvoicing($order, $invoice['data']);
+            $this->notifyMarketplaceInvoicing($order, $invoiceData['data']);
             
             $this->log_data('batch', $log_name, "Faturamento parcial processado: $billNo", "I");
             

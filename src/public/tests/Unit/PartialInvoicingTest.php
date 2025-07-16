@@ -2,7 +2,9 @@
 use PHPUnit\Framework\TestCase;
 use Tests\Fakes\FunctionMockTrait;
 
-class BatchBackground_Controller {public function __construct(){} protected function log_data($m,$a,$v,$t='I'){} }
+if (!class_exists('BatchBackground_Controller')) {
+    class BatchBackground_Controller {public function __construct(){} protected function log_data($m,$a,$v,$t='I'){} }
+}
 require_once APPPATH.'controllers/BatchC/Marketplace/Conectala/GetOrders.php';
 
 class PartialInvoicingTest extends TestCase
@@ -51,16 +53,11 @@ class PartialInvoicingTest extends TestCase
             ->willReturn(10);
         $orderModel->expects($this->once())
             ->method('updateOrderStatus')
-            ->with(1,5);
+            ->with(1,62);
         $invoiceItemModel->expects($this->once())
             ->method('getInvoicedQuantities')
             ->with(1)
             ->willReturn([]);
-        $invoiceItemModel->expects($this->once())
-            ->method('createItems')
-            ->with($this->callback(function($items){
-                return count($items)==1 && $items[0]['sku']=='SKU2' && $items[0]['quantity']==1;
-            }));
 
         $controller = new class extends GetOrders {
             public function __construct() {}
@@ -108,20 +105,21 @@ class PartialInvoicingTest extends TestCase
             ->willReturn($items);
         $orderModel->expects($this->once())
             ->method('createInvoice')
-            ->with($this->callback(function($data){return $data['invoice_value']==100;}))
+            ->with(
+                $this->callback(function($data){return $data['invoice_value']==100;}),
+                [
+                    ['sku'=>'SKU1','quantity'=>2,'price'=>10],
+                    ['sku'=>'SKU2','quantity'=>1,'price'=>5]
+                ]
+            )
             ->willReturn(10);
         $orderModel->expects($this->once())
             ->method('updateOrderStatus')
-            ->with(1,5);
+            ->with(1,62);
         $invoiceItemModel->expects($this->once())
             ->method('getInvoicedQuantities')
             ->with(1)
             ->willReturn([]);
-        $invoiceItemModel->expects($this->once())
-            ->method('createItems')
-            ->with($this->callback(function($items){
-                return count($items)==2;
-            }));
 
 
         $controller = new class extends GetOrders {

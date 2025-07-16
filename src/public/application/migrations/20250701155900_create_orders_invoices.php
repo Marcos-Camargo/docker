@@ -4,8 +4,10 @@ return new class extends CI_Migration
 {
     public function up()
     {
+
         if (!\$this->db->table_exists('orders_invoices')) {
             \$this->dbforge->add_field([
+
                 'id' => [
                     'type' => 'INT',
                     'constraint' => 11,
@@ -23,6 +25,7 @@ return new class extends CI_Migration
                     'constraint' => '10,2',
                     'null' => FALSE,
                     'default' => 0,
+
                 ],
                 'invoice_date' => [
                     'type' => 'DATETIME',
@@ -57,6 +60,8 @@ return new class extends CI_Migration
 
     public function down()
     {
+
         \$this->dbforge->drop_table('orders_invoices', TRUE);
+
     }
 };
