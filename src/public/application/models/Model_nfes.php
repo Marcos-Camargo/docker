@@ -263,19 +263,14 @@ class Model_nfes extends CI_Model
         if (empty($item_ids)) {
             return [];
         }
-
-        $item_ids = array_map('intval', $item_ids);
-        $in = implode(',', $item_ids);
-
-        $sql = "SELECT nfes.*
-                FROM orders_invoice_items oii
-                JOIN orders_invoices oi ON oi.id = oii.invoice_id
-                JOIN nfes ON nfes.order_id = oi.order_id
-                WHERE oii.order_item_id IN ({$in})";
-
-        $query = $this->db->query($sql);
-
-        return $query->result_array();
+        return $this->db
+            ->select('nfes.*, oii.order_item_id')
+            ->from('orders_invoice_items oii')
+            ->join('orders_invoices oi', 'oi.id = oii.invoice_id')
+            ->join('nfes', 'nfes.order_id = oi.order_id')
+            ->where_in('oii.order_item_id', $item_ids)
+            ->get()
+            ->result_array();
     }
 
 
