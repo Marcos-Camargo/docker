@@ -27,8 +27,8 @@ class PartialInvoicingTest extends TestCase
 
         $order = ['id'=>1,'bill_no'=>'ORDER1','order_mkt_multiseller'=>'ORDER1','total_order'=>100];
         $items = [
-            ['sku'=>'SKU1','price'=>10,'quantity'=>2],
-            ['sku'=>'SKU2','price'=>5,'quantity'=>1]
+            ['id'=>11,'sku'=>'SKU1','price'=>10,'quantity'=>2],
+            ['id'=>12,'sku'=>'SKU2','price'=>5,'quantity'=>1]
         ];
 
         $orderModel->expects($this->once())
@@ -46,7 +46,7 @@ class PartialInvoicingTest extends TestCase
             ->method('createInvoice')
             ->with(
                 $this->callback(function($data){return $data['invoice_value']==5;}),
-                [['sku'=>'SKU2','quantity'=>1,'price'=>5]]
+                [['order_item_id'=>12,'qty_invoiced'=>1,'price'=>5]]
             )
             ->willReturn(10);
         $orderModel->expects($this->once())
@@ -89,9 +89,8 @@ class PartialInvoicingTest extends TestCase
 
         $order = ['id'=>1,'bill_no'=>'ORDER1','order_mkt_multiseller'=>'ORDER1','total_order'=>100];
         $items = [
-            ['sku'=>'SKU1','price'=>10,'quantity'=>2],
-
-            ['sku'=>'SKU2','price'=>5,'quantity'=>1]
+            ['id'=>11,'sku'=>'SKU1','price'=>10,'quantity'=>2],
+            ['id'=>12,'sku'=>'SKU2','price'=>5,'quantity'=>1]
         ];
 
         $orderModel->expects($this->once())
@@ -106,8 +105,8 @@ class PartialInvoicingTest extends TestCase
             ->with(
                 $this->callback(function($data){return $data['invoice_value']==100;}),
                 [
-                    ['sku'=>'SKU1','quantity'=>2,'price'=>10],
-                    ['sku'=>'SKU2','quantity'=>1,'price'=>5]
+                    ['order_item_id'=>11,'qty_invoiced'=>2,'price'=>10],
+                    ['order_item_id'=>12,'qty_invoiced'=>1,'price'=>5]
                 ]
             )
             ->willReturn(10);

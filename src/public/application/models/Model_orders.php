@@ -3940,26 +3940,37 @@ class Model_orders extends CI_Model
 
         if ($invoiceId && !empty($items)) {
             foreach ($items as $item) {
-                if (!isset($item['sku'])) {
-                    continue;
+                $orderItemId = null;
+                $qty = null;
+
+                if (isset($item['order_item_id'])) {
+                    // New format already contains the order item id and quantity
+                    $orderItemId = $item['order_item_id'];
+                    $qty = $item['qty_invoiced'] ?? $item['quantity'] ?? 0;
+                } elseif (isset($item['sku'])) {
+                    // Backwards compatibility with old format using SKU
+                    $orderItem = $this->db->select('id, qty')
+                        ->from('orders_item')
+                        ->where('order_id', $invoiceData['order_id'])
+                        ->where('sku', $item['sku'])
+                        ->get()
+                        ->row_array();
+
+                    if (!$orderItem) {
+                        continue;
+                    }
+
+                    $orderItemId = $orderItem['id'];
+                    $qty = $item['quantity'] ?? $orderItem['qty'];
                 }
 
-                $orderItem = $this->db->select('id, qty')
-                    ->from('orders_item')
-                    ->where('order_id', $invoiceData['order_id'])
-                    ->where('sku', $item['sku'])
-                    ->get()
-                    ->row_array();
-
-                if (!$orderItem) {
+                if (!$orderItemId) {
                     continue;
                 }
-
-                $qty = $item['quantity'] ?? $orderItem['qty'];
 
                 $this->db->insert('orders_invoice_items', [
                     'invoice_id'    => $invoiceId,
-                    'order_item_id' => $orderItem['id'],
+                    'order_item_id' => $orderItemId,
                     'qty_invoiced'  => $qty,
                 ]);
             }
