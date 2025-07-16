@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-require_once __DIR__ . '/../application/libraries/CalculoFrete.php';
+require_once __DIR__ . '/../../application/libraries/CalculoFrete.php';
 
 class CalculoFreteSellerIdMultisellerTest extends TestCase
 {
