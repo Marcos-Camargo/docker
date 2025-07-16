@@ -8,6 +8,7 @@ require APPPATH . "controllers/BatchC/Marketplace/Conectala/ConectalaIntegration
 {
 
     public $int_to 	= '';
+    protected $integration = null;
 
 	public function __construct()
 	{
