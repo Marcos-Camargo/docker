@@ -27,6 +27,11 @@ edited through the administration panel or inserted manually during setup.
 * `POST /api/v1/partial-shipping` – updates shipping information for multiseller
   orders. The route maps to `Api/V1/PartialShipping/index` and calls the batch
   process responsible for handling partial shipments.
+* Environment variable `UNLEASH_API_URL` – overrides the Unleash endpoint. When
+  unset the value from the `unleash_api_url` setting is used or a built‑in
+  default.
+* Environment variable `UNLEASH_API_TOKEN` – token used to access Unleash. If
+  absent the `unleash_api_token` setting or a predefined token is used.
 
 When `multiseller_freight_results` is enabled the quote response is modified so
 that the cheapest option uses the name from `lowest_price` and the fastest uses
