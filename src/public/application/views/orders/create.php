@@ -112,14 +112,14 @@
                                     ?>
                                 </select>
                             </div>
-                            <div class="col-md-6 col-xs-12 form-group">
-                                <label>Loja</label>
-                                <select name="store" class="form-control" disabled required></select>
-                            </div>
                             <div class="col-md-12 form-group">
                                 <div class="panel panel-primary">
                                     <div class="panel-heading">Grade de Produtos</div>
                                     <div class="panel-body">
+                                        <div class="col-md-6 col-xs-12 form-group">
+                                            <label>Loja</label>
+                                            <select name="store" class="form-control" disabled required></select>
+                                        </div>
                                         <div class="col-md-7 col-xs-12 form-group">
                                             <label>Produtos</label>
                                             <select name="get_products" class="form-control" disabled></select>
@@ -162,6 +162,7 @@
                                                         <th>ID</th>
                                                         <th>Nome do Produto</th>
                                                         <th>SKU</th>
+                                                        <th>Loja</th>
                                                         <th>Qtd</th>
                                                         <th>Preço Un.</th>
                                                         <th>Desconto Un.</th>
@@ -388,7 +389,6 @@
 
     const getProducts = store => {
 
-        $('#gridProducts tbody').empty();
         $('[name="get_products"]').select2('destroy').empty().prop('disabled', true);
         cleanValuesProduct(true);
 
@@ -508,8 +508,8 @@
         let totalPriceProd = 0;
         let totalDiscountProd = 0;
         $('#gridProducts tbody tr').each(function() {
-            totalPriceProd += realToNumber($('td:eq(6)', this).text());
-            totalDiscountProd += realToNumber($('td:eq(5)', this).text());
+            totalPriceProd += realToNumber($('td:eq(7)', this).text());
+            totalDiscountProd += realToNumber($('td:eq(6)', this).text());
         });
 
         let shipValue     = realToNumber($('[name="ship_value"]').val());
@@ -546,14 +546,15 @@
     }
 
     const finishOrder = () => {
-        let id, stock, price, discount, price_total;
-        $('[name="product_id[]"], [name="product_stock[]"], [name="product_price[]"], [name="product_discount[]"], [name="product_price_total[]"]').remove();
+        let id, stock, price, discount, price_total, store;
+        $('[name="product_id[]"], [name="product_stock[]"], [name="product_price[]"], [name="product_discount[]"], [name="product_price_total[]"], [name="store_id[]"]').remove();
         $('#gridProducts tbody tr').each(function() {
             id = $(this).find('td:eq(0)').text();
-            stock = $(this).find('td:eq(3)').text();
-            price = realToNumber($(this).find('td:eq(4)').text());
-            discount = realToNumber($(this).find('td:eq(5)').text());
-            price_total = realToNumber($(this).find('td:eq(6)').text());
+            store = $(this).data('store');
+            stock = $(this).find('td:eq(4)').text();
+            price = realToNumber($(this).find('td:eq(5)').text());
+            discount = realToNumber($(this).find('td:eq(6)').text());
+            price_total = realToNumber($(this).find('td:eq(7)').text());
 
             $('#formCreateOrder').append(`
                 <input type="hidden" name="product_id[]" value="${id}">
@@ -561,6 +562,7 @@
                 <input type="hidden" name="product_price[]" value="${price}">
                 <input type="hidden" name="product_discount[]" value="${discount}">
                 <input type="hidden" name="product_price_total[]" value="${price_total}">
+                <input type="hidden" name="store_id[]" value="${store}">
             `);
         });
     }
@@ -672,9 +674,15 @@
         const stock = realToNumber($('[name="get_stock"]').val());
         const price = realToNumber($('[name="get_price"]').val());
         const discount = realToNumber($('[name="get_discount"]').val());
+        const store = parseInt($('[name="store"]').val());
+        const storeName = $('[name="store"] option:selected').text();
         let product = parseInt($('[name="get_products"]').val());
         const total = (price - discount) * stock;
 
+        if (store === 0) {
+            alert('selecione loja');
+            return false;
+        }
         if (stock === 0) {
             alert('informe estoque');
             return false;
@@ -696,11 +704,11 @@
 
         let productInUse = false;
         $('#gridProducts tbody tr').each(function() {
-            if ($(this).find('td:eq(0)').text() == product)
+            if ($(this).data('store') == store && $(this).find('td:eq(0)').text() == product)
                 productInUse = true;
         });
         if (productInUse) {
-            alert('produto já selecionado');
+            alert('produto já selecionado nesta loja');
             return false;
         }
 
@@ -711,10 +719,11 @@
         if (dataVariant.id !== undefined) skuProduct += ` ( ${dataVariant.sku} )`;
 
         $('#gridProducts tbody').append(`
-            <tr>
+            <tr data-store="${store}">
                 <td>${product}</td>
                 <td>${nameProduct}</td>
                 <td>${skuProduct}</td>
+                <td>${storeName}</td>
                 <td>${stock}</td>
                 <td>${numberToReal(price)}</td>
                 <td>${numberToReal(discount)}</td>
