@@ -265,8 +265,12 @@ class Model_nfes extends CI_Model
         }
 
         return $this->db
-            ->where_in('order_item_id', $item_ids)
-            ->get('nfes')
+            ->select('nfes.*, oii.order_item_id')
+            ->from('orders_invoice_items oii')
+            ->join('orders_invoices oi', 'oi.id = oii.invoice_id')
+            ->join('nfes', 'nfes.order_id = oi.order_id')
+            ->where_in('oii.order_item_id', $item_ids)
+            ->get()
             ->result_array();
     }
 

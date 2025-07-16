@@ -4,6 +4,7 @@ $autoload = __DIR__ . '/../vendor/autoload.php';
 if (file_exists($autoload)) {
     require_once $autoload;
 }
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 define('ENVIRONMENT', 'testing');
 $_SERVER['CI_ENV'] = 'testing';

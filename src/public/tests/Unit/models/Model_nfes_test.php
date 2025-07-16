@@ -18,7 +18,14 @@ class Model_nfes_test extends TestCase
     {
         $result = $this->model->getNfesDataByOrderItemIds([1, 2]);
         $this->assertEquals([['mocked' => 'result']], $result);
-        $this->assertStringContainsString('order_item_id', $this->model->db->queries[0]['sql']);
+        $containsJoin = false;
+        foreach ($this->model->db->queries as $query) {
+            if (strpos($query['sql'], 'orders_invoice_items') !== false) {
+                $containsJoin = true;
+                break;
+            }
+        }
+        $this->assertTrue($containsJoin);
     }
 
     public function test_getNfesDataByOrderItemIds_with_empty_returns_empty()
