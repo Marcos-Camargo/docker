@@ -4,7 +4,11 @@
  * */
 require APPPATH . "controllers/BatchC/Marketplace/Conectala/ConectalaIntegration.php";
 
- class OccOrdersSync extends BatchBackground_Controller 
+/**
+ * @property Model_orders $model_orders
+ * @property Model_orders_occ $model_orders_occ
+ */
+ class OccOrdersSync extends BatchBackground_Controller
 {
 
     public $int_to 	= '';
