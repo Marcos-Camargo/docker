@@ -914,8 +914,8 @@ class GetOrders extends BatchBackground_Controller
             
 
             // Processar faturamento
-            $invoice = $this->generateInvoiceData($order, $items);
-            $invoiceId = $this->model_orders->createInvoice($invoice['data'], $invoice['items']);
+            $invoiceData = $this->generateInvoiceData($order, $items);
+            $invoiceId = $this->model_orders->createInvoice($invoiceData['data'], $invoiceData['items']);
 
             
             if (!$invoiceId) {
@@ -929,7 +929,7 @@ class GetOrders extends BatchBackground_Controller
             );
 
             // Notificar marketplace
-            $this->notifyMarketplaceInvoicing($order, $invoice['data']);
+            $this->notifyMarketplaceInvoicing($order, $invoiceData['data']);
             
             $this->log_data('batch', $log_name, "Faturamento parcial processado: $billNo", "I");
             
