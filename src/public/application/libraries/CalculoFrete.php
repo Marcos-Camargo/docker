@@ -436,7 +436,7 @@ class CalculoFrete {
             $data_redis = $this->instance->redis->get($key_redis);
             if ($data_redis !== null) {
                 $result_redis = json_decode($data_redis, true);
-                if (!empty($result_redis)) {
+                if (is_array($result_redis)) {
                     return $result_redis;
                 }
             }
@@ -894,7 +894,7 @@ class CalculoFrete {
             $data_redis = $this->instance->redis->get($key_redis);
             if ($data_redis !== null) {
                 $data_redis = json_decode($data_redis, true);
-                if (!empty($data_redis)) {
+                if (is_array($data_redis) && !empty($data_redis)) {
                     return $data_redis;
                 }
             }
@@ -1172,7 +1172,10 @@ class CalculoFrete {
                 $data_redis = $this->instance->redis->get($keyRedis);
                 $this->_time_end_redis = microtime(true) * 1000;
                 if ($data_redis !== null) {
-                    return json_decode($data_redis, true);
+                    $result_redis = json_decode($data_redis, true);
+                    if (is_array($result_redis)) {
+                        return $result_redis;
+                    }
                 }
             } catch (RedisException $exception) {}
             $this->_time_end_redis = $this->_time_start_redis = 0;
@@ -2599,7 +2602,10 @@ class CalculoFrete {
             if ($this->instance->redis->is_connected) {
                 $data_redis = $this->instance->redis->get($key_redis_integration_logistic_seller_center);
                 if ($data_redis !== null) {
-                    return $data_redis;
+                    $decoded = json_decode($data_redis, true);
+                    if (is_array($decoded)) {
+                        return $decoded;
+                    }
                 }
             }
 
@@ -2662,7 +2668,10 @@ class CalculoFrete {
         if ($this->instance->redis->is_connected) {
             $data_redis = $this->instance->redis->get($key_redis_integration_logistic_seller_center);
             if ($data_redis !== null) {
-                return json_decode($data_redis);
+                $decoded = json_decode($data_redis, true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
             }
         }
 
@@ -3118,7 +3127,10 @@ class CalculoFrete {
                 try {
                     $data_redis = $redis->get($key_redis);
                     if ($data_redis !== null) {
-                        return json_decode($data_redis, true);
+                        $decoded = json_decode($data_redis, true);
+                        if (is_array($decoded)) {
+                            return $decoded;
+                        }
                     }
                 } catch (Throwable $exception) {}
             }

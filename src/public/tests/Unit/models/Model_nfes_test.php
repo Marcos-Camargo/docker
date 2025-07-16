@@ -26,6 +26,8 @@ class Model_nfes_test extends TestCase
             }
         }
         $this->assertTrue($containsJoin);
+        $this->assertStringContainsString('orders_invoice_items', $this->model->db->queries[0]['sql']);
+
     }
 
     public function test_getNfesDataByOrderItemIds_with_empty_returns_empty()

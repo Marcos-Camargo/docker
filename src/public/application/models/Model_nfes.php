@@ -263,7 +263,6 @@ class Model_nfes extends CI_Model
         if (empty($item_ids)) {
             return [];
         }
-
         return $this->db
             ->select('nfes.*, oii.order_item_id')
             ->from('orders_invoice_items oii')
