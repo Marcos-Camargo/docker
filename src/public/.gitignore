@@ -3,6 +3,7 @@
 application/config/config.php
 application/config/database.php
 application/logs/
+!application/logs/.gitkeep
 assets/images/catalog_product_image/
 assets/images/company_image/
 assets/images/etiquetas/

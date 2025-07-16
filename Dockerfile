@@ -55,7 +55,9 @@ ENV PATH=$PATH:/root/composer/vendor/bin \
 # Adiciona as configs.
 COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
 COPY ./supervisor/supervisord.conf /etc/supervisord.conf
-
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Inicia o supervisor para rodar NGINX e PHP-FPM.
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
