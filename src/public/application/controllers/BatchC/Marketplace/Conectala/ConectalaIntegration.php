@@ -5,7 +5,7 @@ Realiza a integração com SellerCenter Conectala
 
 */   
 
-class Integration 
+class ConectalaIntegration
 {     
     public $url_api = '';
  
