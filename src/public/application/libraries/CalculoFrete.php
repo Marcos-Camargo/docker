@@ -1297,314 +1297,316 @@ class CalculoFrete {
             "Executando cotação tradicional (fallback)", "I");
 
         return $this->executeTraditionalQuote($mkt, $items, $zipcode, $checkStock, $groupServices);
+        // LEGACY: bloco de validação mantido apenas para referência
 
-        // === FIM DA LÓGICA MULTISELLER ===
-        // Continuar com a validação original
-        if (!array_key_exists('data', $quoteResponse)) {
-            $quoteResponse = array(
-                'success'   => true,
-                'data'      => array()
-            );
-        }
 
-        if ($platform === 'VIA') {
-            $cross_docking = 0;
-        }
+//         // === FIM DA LÓGICA MULTISELLER ===
+//         // Continuar com a validação original
+//         if (!array_key_exists('data', $quoteResponse)) {
+//             $quoteResponse = array(
+//                 'success'   => true,
+//                 'data'      => array()
+//             );
+//         }
+// 
+//         if ($platform === 'VIA') {
+//             $cross_docking = 0;
+//         }
+// 
+//         // Ocorreu algum problema de validação no produto.
+//         if (!$quoteResponse['success']) {
+//             if (!count($dataSkus)) {
+//                 try {
+//                     if ($zipcode !== null && $enable_redis_quote) {
+//                         $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
+//                     }
+//                 } catch (RedisException $exception) {}
+//                 return $quoteResponse;
+//             }
+// 
+//             $quoteResponse['data']['logistic']          = $logistic ?? null;
+//             $quoteResponse['data']['store_integration'] = $store_integration ?? null;
+//             $quoteResponse['data']['skus']              = $dataSkus;
+//             $quoteResponse['data']['totalPrice']        = $totalPrice;
+//             $quoteResponse['data']['crossDocking']      = $cross_docking;
+// 
+//             try {
+//                 if ($zipcode !== null && $enable_redis_quote) {
+//                     // Não salvar no redis quando der erro
+//                     //$this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
+//                 }
+//             } catch (RedisException $exception) {}
+//             return $quoteResponse;
+// 
+//         }
+// 
+//         // Adição do tempo de crossdocking.
+//         $dataQuote['crossDocking']  = $cross_docking;
+//         $dataQuote['zipcodeSender'] = $zipCodeSeller;
+//         $dataQuote['dataInternal']  = $arrDataAd;
+// 
+//         if ($zipcode !== null && empty($quoteResponse['data']['services'])) {
+//             $store_id = $storeId;
+// 
+//             // Transportadoras das tabelas simplificadas e carregadas a partir dum arquivo CSV.
+//             $integration = $this->getIntegrationLogistic($store_id);
+//             $dataStore = $dataQuote['dataInternal'][$dataQuote['items'][0]['sku']];
+// 
+//             try {
+//                 if ($integration) {
+//                     try {
+//                         $this->_time_start_integration_instance = microtime(true) * 1000;
+//                         $this->instanceLogistic($integration, $dataStore['store_id'], $dataQuote, $logistic['seller']);
+//                         $this->_time_end_integration_instance = microtime(true) * 1000;
+// 
+//                         $this->_time_start_integration = microtime(true) * 1000;
+//                         $quoteResponse = $this->logistic->getQuote($dataQuote, true, $this->enable_multiseller_operation);
+//                         $this->_time_end_integration = microtime(true) * 1000;
+//                     } catch (InvalidArgumentException $exception) {
+//                         if (empty($this->_time_end_integration_instance)) {
+//                             $this->_time_end_integration_instance = $this->_time_start_integration_instance ? microtime(true) * 1000 : 0;
+//                         }
+//                         $this->_time_end_integration = $this->_time_start_integration ? microtime(true) * 1000 : 0;
+//                         $quoteResponse = array(
+//                             'success' => false,
+//                             'data' => array(
+//                                 'message' => $exception->getMessage()
+//                             )
+//                         );
+//                     }
+// 
+//                     // Não tem nenhuma integração - Pegará as tabelas de contingência.
+//                     if (!isset($quoteResponse['data']['services']) || !count($quoteResponse['data']['services'])) {
+//                         $oldQuoteResponse = $quoteResponse;
+//                         throw new InvalidArgumentException('TableContingency');
+// 
+//                     }
+//                 } else {
+//                     throw new InvalidArgumentException('TableInternal');
+//                 }
+//             } catch (InvalidArgumentException $exception) {
+//                 $error_message = $exception->getMessage();
+//                 if ($error_message == 'TableContingency') {
+//                     $this->_time_start_contingency = microtime(true) * 1000;
+//                 } elseif ($error_message == 'TableInternal') {
+//                     $this->_time_start_internal_table = microtime(true) * 1000;
+//                 }
+// 
+//                 try {
+//                     $this->instanceLogistic('TableInternal', $storeId, $dataQuote, $logistic['seller']);
+//                     $quoteResponse = $this->logistic->getQuote($dataQuote, false, $this->enable_multiseller_operation);
+//                 } catch (InvalidArgumentException $exception) {
+//                     $quoteResponse = array(
+//                         'success' => false,
+//                         'data' => array(
+//                             'message' => $exception->getMessage()
+//                         )
+//                     );
+//                 }
+// 
+//                 if ($error_message == 'TableContingency') {
+//                     $this->_time_end_contingency = microtime(true) * 1000;
+// 
+//                     if (
+//                         isset($oldQuoteResponse) &&
+//                         !$oldQuoteResponse['success'] &&
+//                         (
+//                             !isset($quoteResponse['data']['services']) ||
+//                             !count($quoteResponse['data']['services'])
+//                         )
+//                     ) {
+//                         $quoteResponse = $oldQuoteResponse;
+//                     }
+//                 } elseif ($error_message == 'TableInternal') {
+//                     $this->_time_end_internal_table = microtime(true) * 1000;
+//                 }
+//             }
+// 
+//             // Aplica promoções
+//             $this->_time_start_promotion = microtime(true) * 1000;
+//             if (isset($quoteResponse['data']['services']) && count($quoteResponse['data']['services'])) {
+//                 $state = null;
+//                 $dataRecipientState = $dataRecipient['state'] ?? '';
+//                 $key_redis_state = "$sellerCenter:state:$dataRecipientState";
+//                 if ($enable_redis_quote) {
+//                     $data_redis = $this->instance->redis->get($key_redis_state);
+//                     if ($data_redis !== null) {
+//                         $state = json_decode($data_redis);
+//                     }
+//                 }
+// 
+//                 if ($state === null) {
+//                     $state = $this->readonlydb->where('Uf', $dataRecipient['state'] ?? '')->get('states')->row_object();
+//                     if ($enable_redis_quote) {
+//                         $this->instance->redis->setex($key_redis_state, 21600, json_encode($state, JSON_UNESCAPED_UNICODE));
+//                     }
+//                 }
+// 
+//                 $quoteResponse['data']['services'] = $this->logistic->getPromotion($quoteResponse['data']['services'], !empty($state) ? $state->CodigoUf : '');
+//             }
+//             $this->_time_end_promotion = microtime(true) * 1000;
+// 
+//             // Se não for VTEX(erp) e permite agrupar, irá agrupar os serviços para retornar um valor por serviço.
+//             if (
+//                 $groupServices &&
+//                 isset($quoteResponse['data']['services']) &&
+//                 count($quoteResponse['data']['services'])
+//             ) {
+//                 $serviceResponseVtex = array();
+//                 foreach ($quoteResponse['data']['services'] as $service) {
+//                     if (isset($serviceResponseVtex[$service['method']])) {
+//                         $serviceResponseVtex[$service['method']]['value'] += $service['value'];
+//                         $serviceResponseVtex[$service['method']]['counter'] += 1;
+// 
+//                         if ($service['deadline'] > $serviceResponseVtex[$service['method']]['deadline']) {
+//                             $serviceResponseVtex[$service['method']]['deadline'] = $service['deadline'];
+//                         }
+//                     } else {
+//                         $serviceResponseVtex[$service['method']] = array(
+//                             'prd_id'        => $service['prd_id'] ?? null,
+//                             'skumkt'        => $service['skumkt'] ?? null,
+//                             'quote_id'      => $service['quote_id'],
+//                             'method_id'     => $service['method_id'],
+//                             'value'         => $service['value'],
+//                             'deadline'      => $service['deadline'],
+//                             'method'        => $service['method'],
+//                             'provider'      => $service['provider'],
+//                             "provider_cnpj" => $service['provider_cnpj'] ?? null,
+//                             "shipping_id"   => $service['shipping_id'] ?? null,
+//                             'counter'       => 1
+//                         );
+//                     }
+//                 }
+// 
+//                 $services = array();
+//                 foreach ($serviceResponseVtex as $service) {
+//                     unset($serviceResponseVtex[$service['method']]['counter']);
+//                     $services[] = $serviceResponseVtex[$service['method']];
+//                 }
+// 
+//                 $quoteResponse['data']['services'] = $services;
+//             }
+//         }
+// 
+//         if (!array_key_exists('data', $quoteResponse)) {
+//             if ($zipcode !== null) {
+//                 $quoteResponse = array(
+//                     'success' => false,
+//                     'data' => array(
+//                         'message' => 'Não foi possível consultar os serviços disponíveis.'
+//                     )
+//                 );
+//             } else {
+//                 $quoteResponse = array(
+//                     'success'   => true,
+//                     'data'      => array()
+//                 );
+//             }
+//         }
+// 
+//         if (!$quoteResponse['success'] && is_string($quoteResponse['data'])) {
+//             $messageError = $quoteResponse['data'];
+//             $quoteResponse['data'] = array();
+//             $quoteResponse['data']['message'] = $messageError;
+//         }
+// 
+//         $quoteResponse['data']['store_integration'] = $store_integration;
+//         $quoteResponse['data']['logistic']          = $logistic;
+//         $quoteResponse['data']['skus']              = $dataSkus;
+//         $quoteResponse['data']['totalPrice']        = $totalPrice;
+//         $quoteResponse['data']['crossDocking']      = $cross_docking;
+//         $quoteResponse['data']['marketplace']       = $channel;
+//         if ($this->logistic) {
+//             $quoteResponse['data']['pickup_points'] = $this->logistic->getPickupPoints();
+//         }
+// 
+//         if (!$quoteResponse['success']) {
+//             try {
+//                 if ($zipcode !== null && $enable_redis_quote) {
+//                     $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
+//                 }
+//             } catch (RedisException $exception) {}
+//             return $quoteResponse;
+//         }
+// 
+//         // Se existe algum serviço, então as regras de leilão de frete são aplicadas.
+//         if (isset($quoteResponse['data']['services']) && count($quoteResponse['data']['services'])) {
+//             $log_name = __CLASS__.'/'.__FUNCTION__;
+// 
+//             $quoteResponse['data']['services'] = $this->logistic->setAdditionalDeadline($this->instance->redis, $quoteResponse['data']['services']);
+// 
+//             $rule = null;
+//             $key_redis_rules = "$sellerCenter:auction_rule:$channel";
+//             if ($enable_redis_quote) {
+//                 $data_redis = $this->instance->redis->get($key_redis_rules);
+//                 if ($data_redis !== null) {
+//                     $rule = json_decode($data_redis);
+//                 }
+//             }
+// 
+//             if ($rule === null) {
+//                 if ($this->ms_shipping->use_ms_shipping) {
+//                     //if (false) {
+//                     $rule = (object)$this->ms_shipping->getRuleAuction($channel);
+//                 } else {
+//                     $this->readonlydb->select('id');
+//                     $this->readonlydb->where(['store_id' => 0, 'INT_TO' => $channel]);
+//                     $subQuery = $this->readonlydb->get_compiled_select('integrations', true);
+//                     $rule = $this->readonlydb->where("mkt_id = ($subQuery)")->get('rules_seller_conditions')->row_object();
+//                 }
+// 
+//                 if ($enable_redis_quote) {
+//                     $this->instance->redis->setex($key_redis_rules, 21600, json_encode($rule, JSON_UNESCAPED_UNICODE));
+//                 }
+//             }
+// 
+//             $this->_time_start_auction = microtime(true) * 1000;
+//             $quoteResponse = $this->logistic->shippingAuctionRules(
+//                 $rule,
+//                 $quoteResponse,
+//                 $platform,
+//                 $groupServices
+//             );
+//             $this->_time_end_auction = microtime(true) * 1000;
+// 
+//             // Precificação do frete.
+//             $quote_data = $quoteResponse;
+//             $quote_data['table_name'] = $table;
+//             $this->_time_start_price_rules = microtime(true) * 1000;
+//             $quoteResponse = $this->logistic->applyShippingPricingRules($quote_data, $this->instance->redis);
+//             $this->_time_end_price_rules = microtime(true) * 1000;
+// 
+//             if (isset($quoteResponse["shipping"])) {
+//                 get_instance()->log_data('api', $log_name, json_encode($quoteResponse["shipping"]), 'I');
+//             } else {
+//                 get_instance()->log_data('api', $log_name, '{"apply":{"success":"No shipping pricing rule applied."}}', 'I');
+//             }
+// 
+//             if (!empty($this->logistic) && $this->logistic->has_multiseller) {
+//                 $this->loadFreightStandardizationConfig();
+//                 if ($this->multiseller_freight_results) {
+//                     $this->setMarketplaceReplaceShippingMethod($quoteResponse);
+//                 }
+//             }
+//         }
+// 
+//         $store = $this->instance->db->select('additional_operational_deadline')->get_where('stores', array('id' => $storeId))->row_array();
+// 
+//         if(isset($quoteResponse['data']['services'])){
+//             $this->setAdditionalOperationalDeadlineSla($quoteResponse, $store['additional_operational_deadline']);
+//         }
+// 
+//         if (isset($store_id)) {
+//             $quoteResponse['store_id'] = $store_id;
+//         }
+// 
+//         try {
+//             if ($zipcode !== null && $enable_redis_quote) {
+//                 $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
+//             }
+//         } catch (RedisException $exception) {}
 
-        // Ocorreu algum problema de validação no produto.
-        if (!$quoteResponse['success']) {
-            if (!count($dataSkus)) {
-                try {
-                    if ($zipcode !== null && $enable_redis_quote) {
-                        $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
-                    }
-                } catch (RedisException $exception) {}
-                return $quoteResponse;
-            }
-
-            $quoteResponse['data']['logistic']          = $logistic ?? null;
-            $quoteResponse['data']['store_integration'] = $store_integration ?? null;
-            $quoteResponse['data']['skus']              = $dataSkus;
-            $quoteResponse['data']['totalPrice']        = $totalPrice;
-            $quoteResponse['data']['crossDocking']      = $cross_docking;
-
-            try {
-                if ($zipcode !== null && $enable_redis_quote) {
-                    // Não salvar no redis quando der erro
-                    //$this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
-                }
-            } catch (RedisException $exception) {}
-            return $quoteResponse;
-
-        }
-
-        // Adição do tempo de crossdocking.
-        $dataQuote['crossDocking']  = $cross_docking;
-        $dataQuote['zipcodeSender'] = $zipCodeSeller;
-        $dataQuote['dataInternal']  = $arrDataAd;
-
-        if ($zipcode !== null && empty($quoteResponse['data']['services'])) {
-            $store_id = $storeId;
-
-            // Transportadoras das tabelas simplificadas e carregadas a partir dum arquivo CSV.
-            $integration = $this->getIntegrationLogistic($store_id);
-            $dataStore = $dataQuote['dataInternal'][$dataQuote['items'][0]['sku']];
-
-            try {
-                if ($integration) {
-                    try {
-                        $this->_time_start_integration_instance = microtime(true) * 1000;
-                        $this->instanceLogistic($integration, $dataStore['store_id'], $dataQuote, $logistic['seller']);
-                        $this->_time_end_integration_instance = microtime(true) * 1000;
-
-                        $this->_time_start_integration = microtime(true) * 1000;
-                        $quoteResponse = $this->logistic->getQuote($dataQuote, true, $this->enable_multiseller_operation);
-                        $this->_time_end_integration = microtime(true) * 1000;
-                    } catch (InvalidArgumentException $exception) {
-                        if (empty($this->_time_end_integration_instance)) {
-                            $this->_time_end_integration_instance = $this->_time_start_integration_instance ? microtime(true) * 1000 : 0;
-                        }
-                        $this->_time_end_integration = $this->_time_start_integration ? microtime(true) * 1000 : 0;
-                        $quoteResponse = array(
-                            'success' => false,
-                            'data' => array(
-                                'message' => $exception->getMessage()
-                            )
-                        );
-                    }
-
-                    // Não tem nenhuma integração - Pegará as tabelas de contingência.
-                    if (!isset($quoteResponse['data']['services']) || !count($quoteResponse['data']['services'])) {
-                        $oldQuoteResponse = $quoteResponse;
-                        throw new InvalidArgumentException('TableContingency');
-
-                    }
-                } else {
-                    throw new InvalidArgumentException('TableInternal');
-                }
-            } catch (InvalidArgumentException $exception) {
-                $error_message = $exception->getMessage();
-                if ($error_message == 'TableContingency') {
-                    $this->_time_start_contingency = microtime(true) * 1000;
-                } elseif ($error_message == 'TableInternal') {
-                    $this->_time_start_internal_table = microtime(true) * 1000;
-                }
-
-                try {
-                    $this->instanceLogistic('TableInternal', $storeId, $dataQuote, $logistic['seller']);
-                    $quoteResponse = $this->logistic->getQuote($dataQuote, false, $this->enable_multiseller_operation);
-                } catch (InvalidArgumentException $exception) {
-                    $quoteResponse = array(
-                        'success' => false,
-                        'data' => array(
-                            'message' => $exception->getMessage()
-                        )
-                    );
-                }
-
-                if ($error_message == 'TableContingency') {
-                    $this->_time_end_contingency = microtime(true) * 1000;
-
-                    if (
-                        isset($oldQuoteResponse) &&
-                        !$oldQuoteResponse['success'] &&
-                        (
-                            !isset($quoteResponse['data']['services']) ||
-                            !count($quoteResponse['data']['services'])
-                        )
-                    ) {
-                        $quoteResponse = $oldQuoteResponse;
-                    }
-                } elseif ($error_message == 'TableInternal') {
-                    $this->_time_end_internal_table = microtime(true) * 1000;
-                }
-            }
-
-            // Aplica promoções
-            $this->_time_start_promotion = microtime(true) * 1000;
-            if (isset($quoteResponse['data']['services']) && count($quoteResponse['data']['services'])) {
-                $state = null;
-                $dataRecipientState = $dataRecipient['state'] ?? '';
-                $key_redis_state = "$sellerCenter:state:$dataRecipientState";
-                if ($enable_redis_quote) {
-                    $data_redis = $this->instance->redis->get($key_redis_state);
-                    if ($data_redis !== null) {
-                        $state = json_decode($data_redis);
-                    }
-                }
-
-                if ($state === null) {
-                    $state = $this->readonlydb->where('Uf', $dataRecipient['state'] ?? '')->get('states')->row_object();
-                    if ($enable_redis_quote) {
-                        $this->instance->redis->setex($key_redis_state, 21600, json_encode($state, JSON_UNESCAPED_UNICODE));
-                    }
-                }
-
-                $quoteResponse['data']['services'] = $this->logistic->getPromotion($quoteResponse['data']['services'], !empty($state) ? $state->CodigoUf : '');
-            }
-            $this->_time_end_promotion = microtime(true) * 1000;
-
-            // Se não for VTEX(erp) e permite agrupar, irá agrupar os serviços para retornar um valor por serviço.
-            if (
-                $groupServices &&
-                isset($quoteResponse['data']['services']) &&
-                count($quoteResponse['data']['services'])
-            ) {
-                $serviceResponseVtex = array();
-                foreach ($quoteResponse['data']['services'] as $service) {
-                    if (isset($serviceResponseVtex[$service['method']])) {
-                        $serviceResponseVtex[$service['method']]['value'] += $service['value'];
-                        $serviceResponseVtex[$service['method']]['counter'] += 1;
-
-                        if ($service['deadline'] > $serviceResponseVtex[$service['method']]['deadline']) {
-                            $serviceResponseVtex[$service['method']]['deadline'] = $service['deadline'];
-                        }
-                    } else {
-                        $serviceResponseVtex[$service['method']] = array(
-                            'prd_id'        => $service['prd_id'] ?? null,
-                            'skumkt'        => $service['skumkt'] ?? null,
-                            'quote_id'      => $service['quote_id'],
-                            'method_id'     => $service['method_id'],
-                            'value'         => $service['value'],
-                            'deadline'      => $service['deadline'],
-                            'method'        => $service['method'],
-                            'provider'      => $service['provider'],
-                            "provider_cnpj" => $service['provider_cnpj'] ?? null,
-                            "shipping_id"   => $service['shipping_id'] ?? null,
-                            'counter'       => 1
-                        );
-                    }
-                }
-
-                $services = array();
-                foreach ($serviceResponseVtex as $service) {
-                    unset($serviceResponseVtex[$service['method']]['counter']);
-                    $services[] = $serviceResponseVtex[$service['method']];
-                }
-
-                $quoteResponse['data']['services'] = $services;
-            }
-        }
-
-        if (!array_key_exists('data', $quoteResponse)) {
-            if ($zipcode !== null) {
-                $quoteResponse = array(
-                    'success' => false,
-                    'data' => array(
-                        'message' => 'Não foi possível consultar os serviços disponíveis.'
-                    )
-                );
-            } else {
-                $quoteResponse = array(
-                    'success'   => true,
-                    'data'      => array()
-                );
-            }
-        }
-
-        if (!$quoteResponse['success'] && is_string($quoteResponse['data'])) {
-            $messageError = $quoteResponse['data'];
-            $quoteResponse['data'] = array();
-            $quoteResponse['data']['message'] = $messageError;
-        }
-
-        $quoteResponse['data']['store_integration'] = $store_integration;
-        $quoteResponse['data']['logistic']          = $logistic;
-        $quoteResponse['data']['skus']              = $dataSkus;
-        $quoteResponse['data']['totalPrice']        = $totalPrice;
-        $quoteResponse['data']['crossDocking']      = $cross_docking;
-        $quoteResponse['data']['marketplace']       = $channel;
-        if ($this->logistic) {
-            $quoteResponse['data']['pickup_points'] = $this->logistic->getPickupPoints();
-        }
-
-        if (!$quoteResponse['success']) {
-            try {
-                if ($zipcode !== null && $enable_redis_quote) {
-                    $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
-                }
-            } catch (RedisException $exception) {}
-            return $quoteResponse;
-        }
-
-        // Se existe algum serviço, então as regras de leilão de frete são aplicadas.
-        if (isset($quoteResponse['data']['services']) && count($quoteResponse['data']['services'])) {
-            $log_name = __CLASS__.'/'.__FUNCTION__;
-
-            $quoteResponse['data']['services'] = $this->logistic->setAdditionalDeadline($this->instance->redis, $quoteResponse['data']['services']);
-
-            $rule = null;
-            $key_redis_rules = "$sellerCenter:auction_rule:$channel";
-            if ($enable_redis_quote) {
-                $data_redis = $this->instance->redis->get($key_redis_rules);
-                if ($data_redis !== null) {
-                    $rule = json_decode($data_redis);
-                }
-            }
-
-            if ($rule === null) {
-                if ($this->ms_shipping->use_ms_shipping) {
-                    //if (false) {
-                    $rule = (object)$this->ms_shipping->getRuleAuction($channel);
-                } else {
-                    $this->readonlydb->select('id');
-                    $this->readonlydb->where(['store_id' => 0, 'INT_TO' => $channel]);
-                    $subQuery = $this->readonlydb->get_compiled_select('integrations', true);
-                    $rule = $this->readonlydb->where("mkt_id = ($subQuery)")->get('rules_seller_conditions')->row_object();
-                }
-
-                if ($enable_redis_quote) {
-                    $this->instance->redis->setex($key_redis_rules, 21600, json_encode($rule, JSON_UNESCAPED_UNICODE));
-                }
-            }
-
-            $this->_time_start_auction = microtime(true) * 1000;
-            $quoteResponse = $this->logistic->shippingAuctionRules(
-                $rule,
-                $quoteResponse,
-                $platform,
-                $groupServices
-            );
-            $this->_time_end_auction = microtime(true) * 1000;
-
-            // Precificação do frete.
-            $quote_data = $quoteResponse;
-            $quote_data['table_name'] = $table;
-            $this->_time_start_price_rules = microtime(true) * 1000;
-            $quoteResponse = $this->logistic->applyShippingPricingRules($quote_data, $this->instance->redis);
-            $this->_time_end_price_rules = microtime(true) * 1000;
-
-            if (isset($quoteResponse["shipping"])) {
-                get_instance()->log_data('api', $log_name, json_encode($quoteResponse["shipping"]), 'I');
-            } else {
-                get_instance()->log_data('api', $log_name, '{"apply":{"success":"No shipping pricing rule applied."}}', 'I');
-            }
-
-            if (!empty($this->logistic) && $this->logistic->has_multiseller) {
-                $this->loadFreightStandardizationConfig();
-                if ($this->multiseller_freight_results) {
-                    $this->setMarketplaceReplaceShippingMethod($quoteResponse);
-                }
-            }
-        }
-
-        $store = $this->instance->db->select('additional_operational_deadline')->get_where('stores', array('id' => $storeId))->row_array();
-
-        if(isset($quoteResponse['data']['services'])){
-            $this->setAdditionalOperationalDeadlineSla($quoteResponse, $store['additional_operational_deadline']);
-        }
-
-        if (isset($store_id)) {
-            $quoteResponse['store_id'] = $store_id;
-        }
-
-        try {
-            if ($zipcode !== null && $enable_redis_quote) {
-                $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
-            }
-        } catch (RedisException $exception) {}
-
-        return $quoteResponse;
+//         return $quoteResponse;
     }
 
     private function setMarketplaceReplaceShippingMethod(&$quoteResponse, &$orignal_services = array())
