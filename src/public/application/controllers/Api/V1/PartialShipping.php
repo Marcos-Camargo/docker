@@ -9,27 +9,28 @@ class PartialShipping extends API
      * nulo os dados serão lidos de php://input.
      *
      * @param array|null $payload
-     * @return array
      */
-    public function index_post(array $payload = null)
+    public function index_post(?array $payload = null)
     {
         if ($payload === null) {
             $payload = json_decode(file_get_contents('php://input'), true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                return [
+                $this->response([
                     'success' => false,
                     'message' => 'JSON inválido'
-                ];
+                ], REST_Controller::HTTP_BAD_REQUEST);
+                return;
             }
         }
 
         $required = ['bill_no', 'tracking_code', 'carrier', 'shipping_date'];
         foreach ($required as $field) {
             if (empty($payload[$field])) {
-                return [
+                $this->response([
                     'success' => false,
                     'message' => "Campo obrigatório: $field"
-                ];
+                ], REST_Controller::HTTP_BAD_REQUEST);
+                return;
             }
         }
 
@@ -49,6 +50,8 @@ class PartialShipping extends API
         }
 
         $processor = new GetOrders();
-        return $processor->processPartialShipping($billNo, $shippingData);
+        $result = $processor->processPartialShipping($billNo, $shippingData);
+
+        $this->response($result, REST_Controller::HTTP_OK);
     }
 }
