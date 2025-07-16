@@ -2,7 +2,9 @@
 use PHPUnit\Framework\TestCase;
 use Tests\Fakes\FunctionMockTrait;
 
-class BatchBackground_Controller {public function __construct(){} protected function log_data($m,$a,$v,$t='I'){} }
+if (!class_exists('BatchBackground_Controller')) {
+    class BatchBackground_Controller {public function __construct(){} protected function log_data($m,$a,$v,$t='I'){} }
+}
 require_once APPPATH.'controllers/BatchC/Marketplace/Conectala/GetOrders.php';
 
 class PartialInvoicingTest extends TestCase
