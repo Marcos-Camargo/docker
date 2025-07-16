@@ -2,7 +2,7 @@
 /*
  * Atualiza os status dos pedidos nos sellerscenter do conecta lá
  * */
-require APPPATH . "controllers/BatchC/Marketplace/Conectala/Integration.php";
+require APPPATH . "controllers/BatchC/Marketplace/Conectala/ConectalaIntegration.php";
 
  class OccOrdersSync extends BatchBackground_Controller 
 {
@@ -13,7 +13,7 @@ require APPPATH . "controllers/BatchC/Marketplace/Conectala/Integration.php";
 	{
 		parent::__construct();
 
-		$this->integration = new Integration();
+                $this->integration = new ConectalaIntegration();
 
 		// carrega os modulos necessários para o Job
 		$this->load->model('model_orders');
