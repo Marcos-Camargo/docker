@@ -18,7 +18,7 @@ class Model_nfes_test extends TestCase
     {
         $result = $this->model->getNfesDataByOrderItemIds([1, 2]);
         $this->assertEquals([['mocked' => 'result']], $result);
-        $this->assertStringContainsString('order_item_id', $this->model->db->queries[0]['sql']);
+        $this->assertStringContainsString('orders_invoice_items', $this->model->db->queries[0]['sql']);
     }
 
     public function test_getNfesDataByOrderItemIds_with_empty_returns_empty()
