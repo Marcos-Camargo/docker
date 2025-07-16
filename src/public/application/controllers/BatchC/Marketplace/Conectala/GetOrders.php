@@ -405,6 +405,10 @@ class GetOrders extends BatchBackground_Controller
         if ($order['http_code'] == 200) {
             $content = json_decode($order['content'], true);
 
+            if (!is_array($content) || json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception("Resposta inválida ao consultar o pedido {$line_item['order_code']}");
+            }
+
             if (!$content['success']) {
                 throw new Exception($content['message'] ?? "Não foi possível consultar o pedido {$line_item['order_code']}");
             }
