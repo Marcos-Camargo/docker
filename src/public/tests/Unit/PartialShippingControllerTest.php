@@ -1,7 +1,9 @@
 <?php
 use PHPUnit\Framework\TestCase;
 
-class BatchBackground_Controller {public function __construct(){} protected function log_data($m,$a,$v,$t='I'){} }
+if (!class_exists('BatchBackground_Controller')) {
+    class BatchBackground_Controller {public function __construct(){} protected function log_data($m,$a,$v,$t='I'){} }
+}
 
 class GetOrders extends BatchBackground_Controller {
     public static $lastInstance;
