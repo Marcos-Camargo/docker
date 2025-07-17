@@ -5,7 +5,7 @@ if (!class_exists('BatchBackground_Controller')) {
     class BatchBackground_Controller {public function __construct(){} protected function log_data($m,$a,$v,$t='I'){} }
 }
 
-class GetOrders extends BatchBackground_Controller {
+class FakeGetOrders extends BatchBackground_Controller {
     public static $lastInstance;
     public $received;
     public function __construct(){self::$lastInstance=$this;}
@@ -14,6 +14,8 @@ class GetOrders extends BatchBackground_Controller {
         return ['success'=>true,'tracking_code'=>$data['tracking_code']];
     }
 }
+
+class_alias(FakeGetOrders::class, 'GetOrders');
 
 require_once APPPATH.'controllers/Api/V1/PartialShipping.php';
 
@@ -43,6 +45,6 @@ class PartialShippingControllerTest extends TestCase
             'tracking_code' => 'TRK',
             'carrier' => 'CARR',
             'shipping_date' => '2020-01-01'
-        ]], GetOrders::$lastInstance->received);
+        ]], FakeGetOrders::$lastInstance->received);
     }
 }
