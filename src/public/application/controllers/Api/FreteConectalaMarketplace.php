@@ -206,7 +206,10 @@ class FreteConectalaMarketplace extends FreteConectala
      */
     private function returnError(string $message)
     {
-        $this->log_data('api', "frete{$this->mkt['channel']}", $message, 'E');
+        $channel = is_array($this->mkt) && array_key_exists('channel', $this->mkt)
+            ? $this->mkt['channel']
+            : 'unknown';
+        $this->log_data('api', "frete{$channel}", $message, 'E');
 
         $returnError = $this->getMessageError();
 
