@@ -15,7 +15,9 @@ class FakeGetOrders extends BatchBackground_Controller {
     }
 }
 
-class_alias(FakeGetOrders::class, 'GetOrders');
+if (!class_exists('GetOrders', false)) {
+    class_alias(FakeGetOrders::class, 'GetOrders');
+}
 
 require_once APPPATH.'controllers/Api/V1/PartialShipping.php';
 
