@@ -3798,6 +3798,7 @@ class CalculoFrete {
                 $dataQuote = [
                     'zipcodeRecipient' => $zipcode,
                     'items'            => $items,
+                    'crossDocking'     => 0,
                 ];
             }
 
