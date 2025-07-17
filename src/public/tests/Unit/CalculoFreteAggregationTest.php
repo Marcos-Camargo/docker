@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-define('BASEPATH', __DIR__);
+defined('BASEPATH') || define('BASEPATH', __DIR__);
 require_once __DIR__ . '/../../application/libraries/CalculoFrete.php';
 
 class CalculoFreteAggregationTest extends TestCase
