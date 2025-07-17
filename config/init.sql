@@ -11,7 +11,7 @@ INSERT INTO `settings` VALUES (19,'agidesk','conectala',1,1,2,'Dominio agidesk',
 
 CREATE TABLE IF NOT EXISTS `orders_invoices` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `order_id` INT UNSIGNED NOT NULL,
+  `order_id` INT NOT NULL,
   `invoice_value` DECIMAL(10,2) NOT NULL DEFAULT 0,
   `invoice_date` DATETIME NOT NULL,
   `invoice_number` VARCHAR(50) DEFAULT NULL,
