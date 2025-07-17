@@ -5,13 +5,15 @@ if (!class_exists('BatchBackground_Controller')) {
     class BatchBackground_Controller {public function __construct(){} protected function log_data($m,$a,$v,$t='I'){} }
 }
 
-class GetOrders extends BatchBackground_Controller {
-    public static $lastInstance;
-    public $received;
-    public function __construct(){self::$lastInstance=$this;}
-    public function processPartialShipping($billNo, array $data){
-        $this->received = [$billNo,$data];
-        return ['success'=>true,'tracking_code'=>$data['tracking_code']];
+if (!class_exists('GetOrders')) {
+    class GetOrders extends BatchBackground_Controller {
+        public static $lastInstance;
+        public $received;
+        public function __construct(){self::$lastInstance=$this;}
+        public function processPartialShipping($billNo, array $data){
+            $this->received = [$billNo,$data];
+            return ['success'=>true,'tracking_code'=>$data['tracking_code']];
+        }
     }
 }
 
