@@ -17,7 +17,6 @@ return new class extends CI_Migration
                 'order_id' => [
                     'type' => 'INT',
                     'constraint' => 11,
-                    'unsigned' => TRUE,
                     'null' => FALSE,
                 ],
                 'invoice_value' => [
