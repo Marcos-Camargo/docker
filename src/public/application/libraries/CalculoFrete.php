@@ -6,10 +6,6 @@ require_once APPPATH . "libraries/Microservices/v1/Logistic/Shipping.php";
 require_once APPPATH . "libraries/Microservices/v1/Logistic/ShippingCarrier.php";
 require_once APPPATH . "libraries/Microservices/v1/Logistic/ShippingIntegrator.php";
 
-use GuzzleHttp\Promise\Create;
-use GuzzleHttp\Promise\Promise;
-use GuzzleHttp\Promise\RejectedPromise;
-use GuzzleHttp\Promise\PromiseInterface;
 /**
  * @property RedisCodeigniter $redis
  * @property \Microservices\v1\Logistic\Shipping $ms_shipping
@@ -51,43 +47,6 @@ class CalculoFrete {
     public $_time_start_redis = 0;
     public $_time_end_redis = 0;
     public $_time_end = 0;
- // === PROPRIEDADES MULTISELLER ===
-    
-    /**
-     * Habilita operação multiseller
-     * @var bool
-     */
-    private bool $enable_multiseller_operation = false;
-    
-    /**
-     * Flag de padronização de métodos de envio
-     * @var bool
-     */
-    private bool $multiseller_freight_results = false;
-    /**
-     * Configuração de padronização de métodos de envio
-     * @var array|null
-     */
-    private ?array $marketplace_shipping_standardization_config = null;
-    /**
-     * Cache de sellers detectados
-     * @var array
-     */
-    private array $detected_sellers_cache = [];
-    
-    /**
-     * Flag de inicialização multiseller
-     * @var bool
-     */
-    private bool $multiseller_initialized = false;
-
-    /**
-     * Parâmetros extras para operação multiseller
-     * @var array
-     */
-    private array $multiseller_params = [];
-
-    private $validationResult = null;
 
     public function __construct()
     {
@@ -436,7 +395,7 @@ class CalculoFrete {
             $data_redis = $this->instance->redis->get($key_redis);
             if ($data_redis !== null) {
                 $result_redis = json_decode($data_redis, true);
-                if (is_array($result_redis)) {
+                if (!empty($result_redis)) {
                     return $result_redis;
                 }
             }
@@ -894,7 +853,7 @@ class CalculoFrete {
             $data_redis = $this->instance->redis->get($key_redis);
             if ($data_redis !== null) {
                 $data_redis = json_decode($data_redis, true);
-                if (is_array($data_redis) && !empty($data_redis)) {
+                if (!empty($data_redis)) {
                     return $data_redis;
                 }
             }
@@ -1097,7 +1056,6 @@ class CalculoFrete {
      */
     public function formatQuote(array $mkt, array $items, string $zipcode = null, bool $checkStock = true, bool $groupServices = true): array
     {
-        $this->initializeMultisellerIfNeeded();
         $this->_time_start_query_sku = 0;
         $this->_time_end_query_sku = 0;
         $this->_time_start_integration = 0;
@@ -1172,13 +1130,21 @@ class CalculoFrete {
                 $data_redis = $this->instance->redis->get($keyRedis);
                 $this->_time_end_redis = microtime(true) * 1000;
                 if ($data_redis !== null) {
-                    $result_redis = json_decode($data_redis, true);
-                    if (is_array($result_redis)) {
-                        return $result_redis;
-                    }
+                    return json_decode($data_redis, true);
                 }
             } catch (RedisException $exception) {}
             $this->_time_end_redis = $this->_time_start_redis = 0;
+        }
+
+        $enable_multiseller_operation = false;
+        if ($this->readonlydb->get_where('settings', array('name' => 'enable_multiseller_operation', 'status' => 1))->row_array()) {
+            $setting_marketplace_multiseller_operation = $this->readonlydb->get_where('settings', array('name' => 'marketplace_multiseller_operation', 'status' => 1))->row_array();
+            if ($setting_marketplace_multiseller_operation) {
+                $marketplace_multiseller_operation = explode(',', $setting_marketplace_multiseller_operation['value']);
+                if (in_array($channel, $marketplace_multiseller_operation)) {
+                    $enable_multiseller_operation = true;
+                }
+            }
         }
 
         $this->setFieldSKUQuote($platform);
@@ -1197,10 +1163,39 @@ class CalculoFrete {
         $table          = $columnMkt['table'];
         $columnTotalQty = $columnMkt['qty'];
 
+
+        if(count($items)  > 1 && $this->enable_multiseller_operation && $this->multiseller_freight_results) {
+            $skus = array_column($items, 'sku');
+
+            $lastPostEntries = $this->readonlydb
+                ->where(['int_to' => $mkt["channel"]])
+                ->where_in($this->fieldSKUQuote, $skus)
+                ->get($table)
+                ->result_array();
+            $storeIds = array_unique(array_column($lastPostEntries, 'store_id'));
+
+            if (count($storeIds) > 1) {
+                $storeItems = [];
+
+                foreach ($lastPostEntries as $item) {
+                    $skuToMatch = $item[$this->fieldSKUQuote];
+
+                    foreach ($items as $val) {
+                        if ($val['sku'] === $skuToMatch) {
+                            $storeItems[$item['store_id']][] = $val;
+                            break; 
+                        }
+                    }
+                }
+
+                $itemQuotes = [];
+                foreach ($storeItems as $storeId => $itemArray) {
+                    $itemQuotes[$storeId][] = $this->validItemsQuote($itemArray, $mkt, $table, $columnTotalQty, $checkStock, $zipcode, $dataRecipient);
+                }
+            }
+        }
         try {
             $dataQuoteValid = $this->validItemsQuote($items, $mkt, $table, $columnTotalQty, $checkStock, $zipcode, $dataRecipient);
-            
-            $this->validationResult = $dataQuoteValid;
 
             $arrDataAd          = $dataQuoteValid['arrDataAd'];
             $dataSkus           = $dataQuoteValid['dataSkus'];
@@ -1228,397 +1223,323 @@ class CalculoFrete {
         }
 
         $this->_time_end_query_sku = microtime(true) * 1000;
-        /**
-         * LOCALIZAR o início do método formatQuote() após as validações iniciais
-         * ADICIONAR esta seção APÓS a configuração do Redis:
-         */
 
-        // === ORQUESTRADOR MULTISELLER COM FEATURE FLAGS ===
+        if (!array_key_exists('data', $quoteResponse)) {
+            $quoteResponse = array(
+                'success'   => true,
+                'data'      => array()
+            );
+        }
 
-        // Verificar se multiseller está habilitado via feature feature-OEP-1921-multiseller-quote
-        $multisellerEnabled = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results');
+        if ($platform === 'VIA') {
+            $cross_docking = 0;
+        }
 
-        if ($multisellerEnabled && $this->enable_multiseller_operation) {
-            // Executar análise multiseller otimizada
-            $multisellerAnalysis = $this->analyzeMultisellerRequestOptimized($mkt, $items, $dataQuoteValid, $zipcode);
-            
-            if ($multisellerAnalysis['is_multiseller'] && $multisellerAnalysis['total_sellers'] > 1) {
-                get_instance()->log_data('batch', __CLASS__ . '/' . __FUNCTION__, 
-                    "Executando cotação multiseller - " . $multisellerAnalysis['total_sellers'] . " sellers detectados", "I");
-                
-                // Verificar feature flag para cotação paralela feature-OEP-1921-parallel-quotefeature-OEP-1921-parallel-quote
-                if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
+        // Ocorreu algum problema de validação no produto.
+        if (!$quoteResponse['success']) {
+            if (!count($dataSkus)) {
+                try {
+                    if ($zipcode !== null && $enable_redis_quote) {
+                        $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
+                    }
+                } catch (RedisException $exception) {}
+                return $quoteResponse;
+            }
+
+            $quoteResponse['data']['logistic']          = $logistic ?? null;
+            $quoteResponse['data']['store_integration'] = $store_integration ?? null;
+            $quoteResponse['data']['skus']              = $dataSkus;
+            $quoteResponse['data']['totalPrice']        = $totalPrice;
+            $quoteResponse['data']['crossDocking']      = $cross_docking;
+
+            try {
+                if ($zipcode !== null && $enable_redis_quote) {
+                    // Não salvar no redis quando der erro
+                    //$this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
+                }
+            } catch (RedisException $exception) {}
+            return $quoteResponse;
+
+        }
+
+        // Adição do tempo de crossdocking.
+        $dataQuote['crossDocking']  = $cross_docking;
+        $dataQuote['zipcodeSender'] = $zipCodeSeller;
+        $dataQuote['dataInternal']  = $arrDataAd;
+
+        if ($zipcode !== null && empty($quoteResponse['data']['services'])) {
+            $store_id = $storeId;
+
+            // Transportadoras das tabelas simplificadas e carregadas a partir dum arquivo CSV.
+            $integration = $this->getIntegrationLogistic($store_id);
+            $dataStore = $dataQuote['dataInternal'][$dataQuote['items'][0]['sku']];
+
+            try {
+                if ($integration) {
                     try {
-                        $parallelResult = $this->executeParallelMultisellerQuote(
-                            $mkt, 
-                            $multisellerAnalysis['seller_groups'], 
-                            $zipcode, 
-                            $checkStock, 
-                            $groupServices
-                        );
-                        
-                        if ($parallelResult['success']) {
-                            return $parallelResult;
+                        $this->_time_start_integration_instance = microtime(true) * 1000;
+                        $this->instanceLogistic($integration, $dataStore['store_id'], $dataQuote, $logistic['seller']);
+                        $this->_time_end_integration_instance = microtime(true) * 1000;
+
+                        $this->_time_start_integration = microtime(true) * 1000;
+                        $quoteResponse = $this->logistic->getQuote($dataQuote, true, $enable_multiseller_operation);
+                        $this->_time_end_integration = microtime(true) * 1000;
+                    } catch (InvalidArgumentException $exception) {
+                        if (empty($this->_time_end_integration_instance)) {
+                            $this->_time_end_integration_instance = $this->_time_start_integration_instance ? microtime(true) * 1000 : 0;
                         }
-                        
-                        // Fallback para sequencial se paralelo falhar
-                       get_instance()->log_data('batch', __CLASS__ . '/' . __FUNCTION__, 
-                            "Cotação paralela falhou - tentando sequencial", "W");
-                        
-                    } catch (Exception $e) {
-                        get_instance()->log_data('batch', __CLASS__ . '/' . __FUNCTION__, 
-                            "Erro na cotação paralela: " . $e->getMessage() . " - tentando sequencial", "E");
+                        $this->_time_end_integration = $this->_time_start_integration ? microtime(true) * 1000 : 0;
+                        $quoteResponse = array(
+                            'success' => false,
+                            'data' => array(
+                                'message' => $exception->getMessage()
+                            )
+                        );
+                    }
+
+                    // Não tem nenhuma integração - Pegará as tabelas de contingência.
+                    if (!isset($quoteResponse['data']['services']) || !count($quoteResponse['data']['services'])) {
+                        $oldQuoteResponse = $quoteResponse;
+                        throw new InvalidArgumentException('TableContingency');
+
+                    }
+                } else {
+                    throw new InvalidArgumentException('TableInternal');
+                }
+            } catch (InvalidArgumentException $exception) {
+                $error_message = $exception->getMessage();
+                if ($error_message == 'TableContingency') {
+                    $this->_time_start_contingency = microtime(true) * 1000;
+                } elseif ($error_message == 'TableInternal') {
+                    $this->_time_start_internal_table = microtime(true) * 1000;
+                }
+
+                try {
+                    $this->instanceLogistic('TableInternal', $storeId, $dataQuote, $logistic['seller']);
+                    $quoteResponse = $this->logistic->getQuote($dataQuote, false, $enable_multiseller_operation);
+                } catch (InvalidArgumentException $exception) {
+                    $quoteResponse = array(
+                        'success' => false,
+                        'data' => array(
+                            'message' => $exception->getMessage()
+                        )
+                    );
+                }
+
+                if ($error_message == 'TableContingency') {
+                    $this->_time_end_contingency = microtime(true) * 1000;
+
+                    if (
+                        isset($oldQuoteResponse) &&
+                        !$oldQuoteResponse['success'] &&
+                        (
+                            !isset($quoteResponse['data']['services']) ||
+                            !count($quoteResponse['data']['services'])
+                        )
+                    ) {
+                        $quoteResponse = $oldQuoteResponse;
+                    }
+                } elseif ($error_message == 'TableInternal') {
+                    $this->_time_end_internal_table = microtime(true) * 1000;
+                }
+            }
+
+            // Aplica promoções
+            $this->_time_start_promotion = microtime(true) * 1000;
+            if (isset($quoteResponse['data']['services']) && count($quoteResponse['data']['services'])) {
+                $state = null;
+                $dataRecipientState = $dataRecipient['state'] ?? '';
+                $key_redis_state = "$sellerCenter:state:$dataRecipientState";
+                if ($enable_redis_quote) {
+                    $data_redis = $this->instance->redis->get($key_redis_state);
+                    if ($data_redis !== null) {
+                        $state = json_decode($data_redis);
                     }
                 }
-                
-                // Executar cotação sequencial
-                try {
-                    $sequentialResult = $this->executeSequentialMultisellerQuote(
-                        $mkt, 
-                        $multisellerAnalysis['seller_groups'], 
-                        $zipcode, 
-                        $checkStock, 
-                        $groupServices
-                    );
-                    
-                    if ($sequentialResult['success']) {
-                        return $sequentialResult;
+
+                if ($state === null) {
+                    $state = $this->readonlydb->where('Uf', $dataRecipient['state'] ?? '')->get('states')->row_object();
+                    if ($enable_redis_quote) {
+                        $this->instance->redis->setex($key_redis_state, 21600, json_encode($state, JSON_UNESCAPED_UNICODE));
                     }
-                    
-                } catch (Exception $e) {
-                    get_instance()->log_data('batch', __CLASS__ . '/' . __FUNCTION__, 
-                        "Erro na cotação sequencial: " . $e->getMessage() . " - usando fallback tradicional", "E");
+                }
+
+                $quoteResponse['data']['services'] = $this->logistic->getPromotion($quoteResponse['data']['services'], !empty($state) ? $state->CodigoUf : '');
+            }
+            $this->_time_end_promotion = microtime(true) * 1000;
+
+            // Se não for VTEX(erp) e permite agrupar, irá agrupar os serviços para retornar um valor por serviço.
+            if (
+                $groupServices &&
+                isset($quoteResponse['data']['services']) &&
+                count($quoteResponse['data']['services'])
+            ) {
+                $serviceResponseVtex = array();
+                foreach ($quoteResponse['data']['services'] as $service) {
+                    if (isset($serviceResponseVtex[$service['method']])) {
+                        $serviceResponseVtex[$service['method']]['value'] += $service['value'];
+                        $serviceResponseVtex[$service['method']]['counter'] += 1;
+
+                        if ($service['deadline'] > $serviceResponseVtex[$service['method']]['deadline']) {
+                            $serviceResponseVtex[$service['method']]['deadline'] = $service['deadline'];
+                        }
+                    } else {
+                        $serviceResponseVtex[$service['method']] = array(
+                            'prd_id'        => $service['prd_id'] ?? null,
+                            'skumkt'        => $service['skumkt'] ?? null,
+                            'quote_id'      => $service['quote_id'],
+                            'method_id'     => $service['method_id'],
+                            'value'         => $service['value'],
+                            'deadline'      => $service['deadline'],
+                            'method'        => $service['method'],
+                            'provider'      => $service['provider'],
+                            "provider_cnpj" => $service['provider_cnpj'] ?? null,
+                            "shipping_id"   => $service['shipping_id'] ?? null,
+                            'counter'       => 1
+                        );
+                    }
+                }
+
+                $services = array();
+                foreach ($serviceResponseVtex as $service) {
+                    unset($serviceResponseVtex[$service['method']]['counter']);
+                    $services[] = $serviceResponseVtex[$service['method']];
+                }
+
+                $quoteResponse['data']['services'] = $services;
+            }
+        }
+
+        if (!array_key_exists('data', $quoteResponse)) {
+            if ($zipcode !== null) {
+                $quoteResponse = array(
+                    'success' => false,
+                    'data' => array(
+                        'message' => 'Não foi possível consultar os serviços disponíveis.'
+                    )
+                );
+            } else {
+                $quoteResponse = array(
+                    'success'   => true,
+                    'data'      => array()
+                );
+            }
+        }
+
+        if (!$quoteResponse['success'] && is_string($quoteResponse['data'])) {
+            $messageError = $quoteResponse['data'];
+            $quoteResponse['data'] = array();
+            $quoteResponse['data']['message'] = $messageError;
+        }
+
+        $quoteResponse['data']['store_integration'] = $store_integration;
+        $quoteResponse['data']['logistic']          = $logistic;
+        $quoteResponse['data']['skus']              = $dataSkus;
+        $quoteResponse['data']['totalPrice']        = $totalPrice;
+        $quoteResponse['data']['crossDocking']      = $cross_docking;
+        $quoteResponse['data']['marketplace']       = $channel;
+        if ($this->logistic) {
+            $quoteResponse['data']['pickup_points'] = $this->logistic->getPickupPoints();
+        }
+
+        if (!$quoteResponse['success']) {
+            try {
+                if ($zipcode !== null && $enable_redis_quote) {
+                    $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
+                }
+            } catch (RedisException $exception) {}
+            return $quoteResponse;
+        }
+
+        // Se existe algum serviço, então as regras de leilão de frete são aplicadas.
+        if (isset($quoteResponse['data']['services']) && count($quoteResponse['data']['services'])) {
+            $log_name = __CLASS__.'/'.__FUNCTION__;
+
+            $quoteResponse['data']['services'] = $this->logistic->setAdditionalDeadline($this->instance->redis, $quoteResponse['data']['services']);
+
+            $rule = null;
+            $key_redis_rules = "$sellerCenter:auction_rule:$channel";
+            if ($enable_redis_quote) {
+                $data_redis = $this->instance->redis->get($key_redis_rules);
+                if ($data_redis !== null) {
+                    $rule = json_decode($data_redis);
+                }
+            }
+
+            if ($rule === null) {
+                if ($this->ms_shipping->use_ms_shipping) {
+                    //if (false) {
+                    $rule = (object)$this->ms_shipping->getRuleAuction($channel);
+                } else {
+                    $this->readonlydb->select('id');
+                    $this->readonlydb->where(['store_id' => 0, 'INT_TO' => $channel]);
+                    $subQuery = $this->readonlydb->get_compiled_select('integrations', true);
+                    $rule = $this->readonlydb->where("mkt_id = ($subQuery)")->get('rules_seller_conditions')->row_object();
+                }
+
+                if ($enable_redis_quote) {
+                    $this->instance->redis->setex($key_redis_rules, 21600, json_encode($rule, JSON_UNESCAPED_UNICODE));
+                }
+            }
+
+            $this->_time_start_auction = microtime(true) * 1000;
+            $quoteResponse = $this->logistic->shippingAuctionRules(
+                $rule,
+                $quoteResponse,
+                $platform,
+                $groupServices
+            );
+            $this->_time_end_auction = microtime(true) * 1000;
+
+            // Precificação do frete.
+            $quote_data = $quoteResponse;
+            $quote_data['table_name'] = $table;
+            $this->_time_start_price_rules = microtime(true) * 1000;
+            $quoteResponse = $this->logistic->applyShippingPricingRules($quote_data, $this->instance->redis);
+            $this->_time_end_price_rules = microtime(true) * 1000;
+
+            if (isset($quoteResponse["shipping"])) {
+                get_instance()->log_data('api', $log_name, json_encode($quoteResponse["shipping"]), 'I');
+            } else {
+                get_instance()->log_data('api', $log_name, '{"apply":{"success":"No shipping pricing rule applied."}}', 'I');
+            }
+
+            if (!empty($this->logistic) && $this->logistic->has_multiseller) {
+                $setting_marketplace_replace_shipping_method = $this->getSettingRedis($this->instance->redis, 'marketplace_replace_shipping_method');
+                if ($setting_marketplace_replace_shipping_method && $setting_marketplace_replace_shipping_method['status'] == 1) {
+                    $this->setMarketplaceReplaceShippingMethod($quoteResponse, $setting_marketplace_replace_shipping_method['value']);
                 }
             }
         }
 
-        // Fallback: executar cotação tradicional
-        get_instance()->log_data('batch', __CLASS__ . '/' . __FUNCTION__, 
-            "Executando cotação tradicional (fallback)", "I");
+        $store = $this->instance->db->select('additional_operational_deadline')->get_where('stores', array('id' => $storeId))->row_array();
 
-        return $this->executeTraditionalQuote($mkt, $items, $zipcode, $checkStock, $groupServices);
-        // LEGACY: bloco de validação mantido apenas para referência
+        if(isset($quoteResponse['data']['services'])){
+            $this->setAdditionalOperationalDeadlineSla($quoteResponse, $store['additional_operational_deadline']);
+        }
 
+        if (isset($store_id)) {
+            $quoteResponse['store_id'] = $store_id;
+        }
 
-//         // === FIM DA LÓGICA MULTISELLER ===
-//         // Continuar com a validação original
-//         if (!array_key_exists('data', $quoteResponse)) {
-//             $quoteResponse = array(
-//                 'success'   => true,
-//                 'data'      => array()
-//             );
-//         }
-// 
-//         if ($platform === 'VIA') {
-//             $cross_docking = 0;
-//         }
-// 
-//         // Ocorreu algum problema de validação no produto.
-//         if (!$quoteResponse['success']) {
-//             if (!count($dataSkus)) {
-//                 try {
-//                     if ($zipcode !== null && $enable_redis_quote) {
-//                         $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
-//                     }
-//                 } catch (RedisException $exception) {}
-//                 return $quoteResponse;
-//             }
-// 
-//             $quoteResponse['data']['logistic']          = $logistic ?? null;
-//             $quoteResponse['data']['store_integration'] = $store_integration ?? null;
-//             $quoteResponse['data']['skus']              = $dataSkus;
-//             $quoteResponse['data']['totalPrice']        = $totalPrice;
-//             $quoteResponse['data']['crossDocking']      = $cross_docking;
-// 
-//             try {
-//                 if ($zipcode !== null && $enable_redis_quote) {
-//                     // Não salvar no redis quando der erro
-//                     //$this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
-//                 }
-//             } catch (RedisException $exception) {}
-//             return $quoteResponse;
-// 
-//         }
-// 
-//         // Adição do tempo de crossdocking.
-//         $dataQuote['crossDocking']  = $cross_docking;
-//         $dataQuote['zipcodeSender'] = $zipCodeSeller;
-//         $dataQuote['dataInternal']  = $arrDataAd;
-// 
-//         if ($zipcode !== null && empty($quoteResponse['data']['services'])) {
-//             $store_id = $storeId;
-// 
-//             // Transportadoras das tabelas simplificadas e carregadas a partir dum arquivo CSV.
-//             $integration = $this->getIntegrationLogistic($store_id);
-//             $dataStore = $dataQuote['dataInternal'][$dataQuote['items'][0]['sku']];
-// 
-//             try {
-//                 if ($integration) {
-//                     try {
-//                         $this->_time_start_integration_instance = microtime(true) * 1000;
-//                         $this->instanceLogistic($integration, $dataStore['store_id'], $dataQuote, $logistic['seller']);
-//                         $this->_time_end_integration_instance = microtime(true) * 1000;
-// 
-//                         $this->_time_start_integration = microtime(true) * 1000;
-//                         $quoteResponse = $this->logistic->getQuote($dataQuote, true, $this->enable_multiseller_operation);
-//                         $this->_time_end_integration = microtime(true) * 1000;
-//                     } catch (InvalidArgumentException $exception) {
-//                         if (empty($this->_time_end_integration_instance)) {
-//                             $this->_time_end_integration_instance = $this->_time_start_integration_instance ? microtime(true) * 1000 : 0;
-//                         }
-//                         $this->_time_end_integration = $this->_time_start_integration ? microtime(true) * 1000 : 0;
-//                         $quoteResponse = array(
-//                             'success' => false,
-//                             'data' => array(
-//                                 'message' => $exception->getMessage()
-//                             )
-//                         );
-//                     }
-// 
-//                     // Não tem nenhuma integração - Pegará as tabelas de contingência.
-//                     if (!isset($quoteResponse['data']['services']) || !count($quoteResponse['data']['services'])) {
-//                         $oldQuoteResponse = $quoteResponse;
-//                         throw new InvalidArgumentException('TableContingency');
-// 
-//                     }
-//                 } else {
-//                     throw new InvalidArgumentException('TableInternal');
-//                 }
-//             } catch (InvalidArgumentException $exception) {
-//                 $error_message = $exception->getMessage();
-//                 if ($error_message == 'TableContingency') {
-//                     $this->_time_start_contingency = microtime(true) * 1000;
-//                 } elseif ($error_message == 'TableInternal') {
-//                     $this->_time_start_internal_table = microtime(true) * 1000;
-//                 }
-// 
-//                 try {
-//                     $this->instanceLogistic('TableInternal', $storeId, $dataQuote, $logistic['seller']);
-//                     $quoteResponse = $this->logistic->getQuote($dataQuote, false, $this->enable_multiseller_operation);
-//                 } catch (InvalidArgumentException $exception) {
-//                     $quoteResponse = array(
-//                         'success' => false,
-//                         'data' => array(
-//                             'message' => $exception->getMessage()
-//                         )
-//                     );
-//                 }
-// 
-//                 if ($error_message == 'TableContingency') {
-//                     $this->_time_end_contingency = microtime(true) * 1000;
-// 
-//                     if (
-//                         isset($oldQuoteResponse) &&
-//                         !$oldQuoteResponse['success'] &&
-//                         (
-//                             !isset($quoteResponse['data']['services']) ||
-//                             !count($quoteResponse['data']['services'])
-//                         )
-//                     ) {
-//                         $quoteResponse = $oldQuoteResponse;
-//                     }
-//                 } elseif ($error_message == 'TableInternal') {
-//                     $this->_time_end_internal_table = microtime(true) * 1000;
-//                 }
-//             }
-// 
-//             // Aplica promoções
-//             $this->_time_start_promotion = microtime(true) * 1000;
-//             if (isset($quoteResponse['data']['services']) && count($quoteResponse['data']['services'])) {
-//                 $state = null;
-//                 $dataRecipientState = $dataRecipient['state'] ?? '';
-//                 $key_redis_state = "$sellerCenter:state:$dataRecipientState";
-//                 if ($enable_redis_quote) {
-//                     $data_redis = $this->instance->redis->get($key_redis_state);
-//                     if ($data_redis !== null) {
-//                         $state = json_decode($data_redis);
-//                     }
-//                 }
-// 
-//                 if ($state === null) {
-//                     $state = $this->readonlydb->where('Uf', $dataRecipient['state'] ?? '')->get('states')->row_object();
-//                     if ($enable_redis_quote) {
-//                         $this->instance->redis->setex($key_redis_state, 21600, json_encode($state, JSON_UNESCAPED_UNICODE));
-//                     }
-//                 }
-// 
-//                 $quoteResponse['data']['services'] = $this->logistic->getPromotion($quoteResponse['data']['services'], !empty($state) ? $state->CodigoUf : '');
-//             }
-//             $this->_time_end_promotion = microtime(true) * 1000;
-// 
-//             // Se não for VTEX(erp) e permite agrupar, irá agrupar os serviços para retornar um valor por serviço.
-//             if (
-//                 $groupServices &&
-//                 isset($quoteResponse['data']['services']) &&
-//                 count($quoteResponse['data']['services'])
-//             ) {
-//                 $serviceResponseVtex = array();
-//                 foreach ($quoteResponse['data']['services'] as $service) {
-//                     if (isset($serviceResponseVtex[$service['method']])) {
-//                         $serviceResponseVtex[$service['method']]['value'] += $service['value'];
-//                         $serviceResponseVtex[$service['method']]['counter'] += 1;
-// 
-//                         if ($service['deadline'] > $serviceResponseVtex[$service['method']]['deadline']) {
-//                             $serviceResponseVtex[$service['method']]['deadline'] = $service['deadline'];
-//                         }
-//                     } else {
-//                         $serviceResponseVtex[$service['method']] = array(
-//                             'prd_id'        => $service['prd_id'] ?? null,
-//                             'skumkt'        => $service['skumkt'] ?? null,
-//                             'quote_id'      => $service['quote_id'],
-//                             'method_id'     => $service['method_id'],
-//                             'value'         => $service['value'],
-//                             'deadline'      => $service['deadline'],
-//                             'method'        => $service['method'],
-//                             'provider'      => $service['provider'],
-//                             "provider_cnpj" => $service['provider_cnpj'] ?? null,
-//                             "shipping_id"   => $service['shipping_id'] ?? null,
-//                             'counter'       => 1
-//                         );
-//                     }
-//                 }
-// 
-//                 $services = array();
-//                 foreach ($serviceResponseVtex as $service) {
-//                     unset($serviceResponseVtex[$service['method']]['counter']);
-//                     $services[] = $serviceResponseVtex[$service['method']];
-//                 }
-// 
-//                 $quoteResponse['data']['services'] = $services;
-//             }
-//         }
-// 
-//         if (!array_key_exists('data', $quoteResponse)) {
-//             if ($zipcode !== null) {
-//                 $quoteResponse = array(
-//                     'success' => false,
-//                     'data' => array(
-//                         'message' => 'Não foi possível consultar os serviços disponíveis.'
-//                     )
-//                 );
-//             } else {
-//                 $quoteResponse = array(
-//                     'success'   => true,
-//                     'data'      => array()
-//                 );
-//             }
-//         }
-// 
-//         if (!$quoteResponse['success'] && is_string($quoteResponse['data'])) {
-//             $messageError = $quoteResponse['data'];
-//             $quoteResponse['data'] = array();
-//             $quoteResponse['data']['message'] = $messageError;
-//         }
-// 
-//         $quoteResponse['data']['store_integration'] = $store_integration;
-//         $quoteResponse['data']['logistic']          = $logistic;
-//         $quoteResponse['data']['skus']              = $dataSkus;
-//         $quoteResponse['data']['totalPrice']        = $totalPrice;
-//         $quoteResponse['data']['crossDocking']      = $cross_docking;
-//         $quoteResponse['data']['marketplace']       = $channel;
-//         if ($this->logistic) {
-//             $quoteResponse['data']['pickup_points'] = $this->logistic->getPickupPoints();
-//         }
-// 
-//         if (!$quoteResponse['success']) {
-//             try {
-//                 if ($zipcode !== null && $enable_redis_quote) {
-//                     $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
-//                 }
-//             } catch (RedisException $exception) {}
-//             return $quoteResponse;
-//         }
-// 
-//         // Se existe algum serviço, então as regras de leilão de frete são aplicadas.
-//         if (isset($quoteResponse['data']['services']) && count($quoteResponse['data']['services'])) {
-//             $log_name = __CLASS__.'/'.__FUNCTION__;
-// 
-//             $quoteResponse['data']['services'] = $this->logistic->setAdditionalDeadline($this->instance->redis, $quoteResponse['data']['services']);
-// 
-//             $rule = null;
-//             $key_redis_rules = "$sellerCenter:auction_rule:$channel";
-//             if ($enable_redis_quote) {
-//                 $data_redis = $this->instance->redis->get($key_redis_rules);
-//                 if ($data_redis !== null) {
-//                     $rule = json_decode($data_redis);
-//                 }
-//             }
-// 
-//             if ($rule === null) {
-//                 if ($this->ms_shipping->use_ms_shipping) {
-//                     //if (false) {
-//                     $rule = (object)$this->ms_shipping->getRuleAuction($channel);
-//                 } else {
-//                     $this->readonlydb->select('id');
-//                     $this->readonlydb->where(['store_id' => 0, 'INT_TO' => $channel]);
-//                     $subQuery = $this->readonlydb->get_compiled_select('integrations', true);
-//                     $rule = $this->readonlydb->where("mkt_id = ($subQuery)")->get('rules_seller_conditions')->row_object();
-//                 }
-// 
-//                 if ($enable_redis_quote) {
-//                     $this->instance->redis->setex($key_redis_rules, 21600, json_encode($rule, JSON_UNESCAPED_UNICODE));
-//                 }
-//             }
-// 
-//             $this->_time_start_auction = microtime(true) * 1000;
-//             $quoteResponse = $this->logistic->shippingAuctionRules(
-//                 $rule,
-//                 $quoteResponse,
-//                 $platform,
-//                 $groupServices
-//             );
-//             $this->_time_end_auction = microtime(true) * 1000;
-// 
-//             // Precificação do frete.
-//             $quote_data = $quoteResponse;
-//             $quote_data['table_name'] = $table;
-//             $this->_time_start_price_rules = microtime(true) * 1000;
-//             $quoteResponse = $this->logistic->applyShippingPricingRules($quote_data, $this->instance->redis);
-//             $this->_time_end_price_rules = microtime(true) * 1000;
-// 
-//             if (isset($quoteResponse["shipping"])) {
-//                 get_instance()->log_data('api', $log_name, json_encode($quoteResponse["shipping"]), 'I');
-//             } else {
-//                 get_instance()->log_data('api', $log_name, '{"apply":{"success":"No shipping pricing rule applied."}}', 'I');
-//             }
-// 
-//             if (!empty($this->logistic) && $this->logistic->has_multiseller) {
-//                 $this->loadFreightStandardizationConfig();
-//                 if ($this->multiseller_freight_results) {
-//                     $this->setMarketplaceReplaceShippingMethod($quoteResponse);
-//                 }
-//             }
-//         }
-// 
-//         $store = $this->instance->db->select('additional_operational_deadline')->get_where('stores', array('id' => $storeId))->row_array();
-// 
-//         if(isset($quoteResponse['data']['services'])){
-//             $this->setAdditionalOperationalDeadlineSla($quoteResponse, $store['additional_operational_deadline']);
-//         }
-// 
-//         if (isset($store_id)) {
-//             $quoteResponse['store_id'] = $store_id;
-//         }
-// 
-//         try {
-//             if ($zipcode !== null && $enable_redis_quote) {
-//                 $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
-//             }
-//         } catch (RedisException $exception) {}
+        try {
+            if ($zipcode !== null && $enable_redis_quote) {
+                $this->instance->redis->setex($keyRedis, $time_exp_redis, json_encode($quoteResponse, JSON_UNESCAPED_UNICODE));
+            }
+        } catch (RedisException $exception) {}
 
-//         return $quoteResponse;
+        return $quoteResponse;
     }
 
-    private function setMarketplaceReplaceShippingMethod(&$quoteResponse, &$orignal_services = array())
+    private function setMarketplaceReplaceShippingMethod(&$quoteResponse, $marketplace_replace_shipping_method, &$orignal_services = array())
     {
-        $this->loadFreightStandardizationConfig();
-
-        if (!$this->multiseller_freight_results || empty($this->marketplace_shipping_standardization_config)) {
+        $marketplace_replace_shipping_method = json_decode($marketplace_replace_shipping_method, true);
+        if (empty($marketplace_replace_shipping_method)) {
             return;
         }
 
-        $lowest_price    = $this->marketplace_shipping_standardization_config['lowest_price'];
-        $lowest_deadline = $this->marketplace_shipping_standardization_config['lowest_deadline'];
+        $lowest_price    = $marketplace_replace_shipping_method['lowest_price'];
+        $lowest_deadline = $marketplace_replace_shipping_method['lowest_deadline'];
 
         $sku_services = array();
 
@@ -2065,12 +1986,21 @@ class CalculoFrete {
 
     public function getShipCompanyPreviewToCreateOrder(int $store_id, string $int_to, array $items, string $zipcode, string $ship_service_preview)
     {
-        $this->initializeMultisellerIfNeeded();
         $store = $this->instance->db->get_where('stores', array('id' => $store_id))->row_array();
         if (!$store) {
             return [];
         }
 
+        $enable_multiseller_operation = false;
+        if ($this->instance->db->get_where('settings', array('name' => 'enable_multiseller_operation', 'status' => 1))->row_array()) {
+            $setting_marketplace_multiseller_operation = $this->instance->db->get_where('settings', array('name' => 'marketplace_multiseller_operation', 'status' => 1))->row_array();
+            if ($setting_marketplace_multiseller_operation) {
+                $marketplace_multiseller_operation = explode(',', $setting_marketplace_multiseller_operation['value']);
+                if (in_array($int_to, $marketplace_multiseller_operation)) {
+                    $enable_multiseller_operation = true;
+                }
+            }
+        }
 
         $logistic = $this->getLogisticStore(array(
             'freight_seller' 		=> $store['freight_seller'],
@@ -2160,14 +2090,14 @@ class CalculoFrete {
         //Verificar pelo número da cotação, valor pago e sla.
         $selectedQuote = array();
 
-        if ($this->enable_multiseller_operation) {
+        if ($enable_multiseller_operation) {
             if (!empty($quoteResponse['data']['services'])) {
                 $price    = null;
                 $deadline = null;
-                $this->loadFreightStandardizationConfig();
+                $setting_marketplace_replace_shipping_method = $this->getSettingRedis($this->instance->redis, 'marketplace_replace_shipping_method');
 
                 $orignal_services = array();
-                $this->setMarketplaceReplaceShippingMethod($quoteResponse, $orignal_services);
+                $this->setMarketplaceReplaceShippingMethod($quoteResponse, $setting_marketplace_replace_shipping_method['value'], $orignal_services);
 
                 $shipping_method = current($orignal_services)[0]['method'] ?? null;
 
@@ -2283,7 +2213,7 @@ class CalculoFrete {
         //if (false) {
             $quoteResponse = (object)$this->ms_shipping->getFormatQuoteAuction($marketplace, $arrItems, $order['customer_address_zip']);
         }
-        else{
+        else{// Validar se Mult Seller
             $quoteResponse = $this->formatQuote($mkt, $arrItems, $order['customer_address_zip'], false);
         }
 
@@ -2604,10 +2534,7 @@ class CalculoFrete {
             if ($this->instance->redis->is_connected) {
                 $data_redis = $this->instance->redis->get($key_redis_integration_logistic_seller_center);
                 if ($data_redis !== null) {
-                    $decoded = json_decode($data_redis, true);
-                    if (is_array($decoded)) {
-                        return $decoded;
-                    }
+                    return $data_redis;
                 }
             }
 
@@ -2670,10 +2597,7 @@ class CalculoFrete {
         if ($this->instance->redis->is_connected) {
             $data_redis = $this->instance->redis->get($key_redis_integration_logistic_seller_center);
             if ($data_redis !== null) {
-                $decoded = json_decode($data_redis, true);
-                if (is_array($decoded)) {
-                    return $decoded;
-                }
+                return json_decode($data_redis);
             }
         }
 
@@ -2970,38 +2894,14 @@ class CalculoFrete {
 
             $store_integration = $this->getStoreIntegrationStore($dataAd['store_id']);
 
-
             if ($firstStore != $storeId) {
-                // Verificar se multiseller está habilitado
-                $enable_multiseller = false;
-                
-                // Verificar configuração
-                $setting_enable = $this->readonlydb->get_where('settings', array('name' => 'enable_multiseller_operation', 'status' => 1))->row_array();
-                if ($setting_enable) {
-                    $setting_marketplace = $this->readonlydb->get_where('settings', array('name' => 'marketplace_multiseller_operation', 'status' => 1))->row_array();
-                    if ($setting_marketplace && strpos($setting_marketplace['value'], $channel) !== false) {
-                        $enable_multiseller = true;
-                    }
-                }
-                
-                // Verificar feature flag
-                if ($enable_multiseller && class_exists('\App\Libraries\FeatureFlag\FeatureManager')) {
-                    $enable_multiseller = \App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results');
-                }
-                
-                if (!$enable_multiseller) {
-                    // Multiseller desabilitado - manter erro original
-                    $quoteResponse = array(
-                        'success' => false,
-                        'data' => array(
-                            'message' => 'Cotação com mais de uma loja: '.print_r($data,true)
-                        )
-                    );
-                    continue;
-                } else {
-                    // Multiseller habilitado - permitir múltiplas lojas
-                    error_log("CalculoFrete: Múltiplas lojas permitidas - Multiseller ativo (Store: {$firstStore} -> {$storeId})");
-                }
+                $quoteResponse = array(
+                    'success' => false,
+                    'data' => array(
+                        'message' => 'Cotação com mais de uma loja: '.print_r($data,true)
+                    )
+                );
+                continue;
             }
 
             if ($checkStock && $iten['qty'] > $dataAd[$columnTotalQty]) {
@@ -3037,46 +2937,6 @@ class CalculoFrete {
                 );
             }
         }
-        $storeIds = [];
-        $sellerIds = [];
-        foreach ($arrDataAd as $sku => $data) {
-            if (!in_array($data['store_id'], $storeIds)) {
-                $storeIds[] = $data['store_id'];
-            }
-            if (isset($data['seller_id']) && !in_array($data['seller_id'], $sellerIds)) {
-                $sellerIds[] = $data['seller_id'];
-            }
-        }
-        // Se multiseller, retornar informações adicionais
-        $multisellerInfo = null;
-        if (count($storeIds) > 1 || count($sellerIds) > 1) {
-            $multisellerInfo = [
-                'is_multiseller' => true,
-                'store_ids' => $storeIds,
-                'seller_ids' => $sellerIds,
-                'total_stores' => count($storeIds),
-                'total_sellers' => count($sellerIds),
-                'items_by_store' => [],
-                'items_by_seller' => []
-            ];
-
-            // Agrupar itens por store
-            foreach ($arrDataAd as $sku => $data) {
-                $storeId = $data['store_id'];
-                if (!isset($multisellerInfo['items_by_store'][$storeId])) {
-                    $multisellerInfo['items_by_store'][$storeId] = [];
-                }
-                $multisellerInfo['items_by_store'][$storeId][] = $sku;
-
-                $sellerId = $data['seller_id'] ?? null;
-                if ($sellerId !== null) {
-                    if (!isset($multisellerInfo['items_by_seller'][$sellerId])) {
-                        $multisellerInfo['items_by_seller'][$sellerId] = [];
-                    }
-                    $multisellerInfo['items_by_seller'][$sellerId][] = $sku;
-                }
-            }
-        }
 
         return [
             'arrDataAd'         => $arrDataAd,
@@ -3086,12 +2946,9 @@ class CalculoFrete {
             'quoteResponse'     => $quoteResponse,
             'zipCodeSeller'     => $zipCodeSeller,
             'dataQuote'         => $dataQuote,
-            'storeId'           => $storeId,  // Manter para compatibilidade
-            'storeIds'          => $storeIds, // Novo: array de store_ids
-            'sellerIds'         => $sellerIds, // Novo: array de seller_ids
+            'storeId'           => $storeId,
             'logistic'          => $logistic,
-            'store_integration' => $store_integration,
-            'multiseller_info'  => $multisellerInfo // Novo: informações multiseller
+            'store_integration' => $store_integration
         ];
     }
 
@@ -3129,10 +2986,7 @@ class CalculoFrete {
                 try {
                     $data_redis = $redis->get($key_redis);
                     if ($data_redis !== null) {
-                        $decoded = json_decode($data_redis, true);
-                        if (is_array($decoded)) {
-                            return $decoded;
-                        }
+                        return json_decode($data_redis, true);
                     }
                 } catch (Throwable $exception) {}
             }
@@ -3412,46 +3266,7 @@ class CalculoFrete {
 
         return null;
     }
-        // Método getStoreIntegrationStore existente...
-    
-    // === NOVOS MÉTODOS MULTISELLER ===
-    
-    /**
-     * Setter público para controle manual da operação multiseller
-     * 
-     * Permite ativação/desativação manual da funcionalidade multiseller.
-     * Útil para testes unitários e controle programático.
-     * 
-     * @param bool $enabled True para habilitar, false para desabilitar
-     * @return self Para method chaining
-     */
-    public function setEnableMultisellerOperation(bool $enabled): self
-    {
-        // Verificar feature flag antes de permitir ativação
-        if ($enabled && !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) { 
-            $this->enable_multiseller_operation = false;
-            $this->multiseller_initialized = true;
-            return $this;
-        }
-        
-        $this->enable_multiseller_operation = $enabled;
-        $this->multiseller_initialized = true; // Marcar como inicializado
-        
-        return $this;
-    }
 
-    /**
-     * Define parametros adicionais da operacao multiseller
-     *
-     * @param array $params
-     * @return self
-     */
-    public function setMultisellerParams(array $params): self
-    {
-        $this->multiseller_params = $params;
-        return $this;
-    }
-    
     /**
      * Inicializa configurações multiseller se necessário
      * 
@@ -3469,7 +3284,7 @@ class CalculoFrete {
         
         // Verificar feature flag
        
-        if ( !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
+        if ( !\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-multiseller-freight-results')) {
             $this->enable_multiseller_operation = false;
             $this->multiseller_initialized = true;
             return;
@@ -3478,12 +3293,11 @@ class CalculoFrete {
         // Carregar configuração do banco de dados
         try {
             $setting = $this->readonlydb->get_where('settings', [
-                'name' => 'enable_multiseller_operation',
-                'status' => 1
+                'name' => 'enable_multiseller_operation'
             ])->row_array();
             
-            if ($setting && $setting['value'] === '1') {
-                $this->enable_multiseller_operation = true;
+            if ($setting) {
+                $this->enable_multiseller_operation = $setting['status']==1;
             }
         } catch (Exception $e) {
             // Em caso de erro, manter desabilitado
@@ -3493,1546 +3307,36 @@ class CalculoFrete {
         $this->multiseller_initialized = true;
     }
 
-    /**
-     * Carrega configuracao de padronizacao de metodos de envio.
-     *
-     * Consulta primeiro no Redis e depois no banco de dados a configuracao
-     * `multiseller_freight_results`. O resultado e armazenado nas propriedades
-     * `$multiseller_freight_results` e `$marketplace_shipping_standardization_config`.
-     *
-     * @return void
-     */
-    private function loadFreightStandardizationConfig(): void
+   private function formatQuoteMultiseller(array $mkt, array $items, string $zipcode = null, bool $checkStock = true, bool $groupServices = true): array
     {
-        if ($this->marketplace_shipping_standardization_config !== null) {
-            return; // ja carregado
-        }
+        // Inicializa configurações multiseller se necessário
+        $this->initializeMultisellerIfNeeded();
 
-        $setting = $this->getSettingRedis($this->instance->redis, 'multiseller_freight_results');
 
-        $this->multiseller_freight_results = false;
-        $this->marketplace_shipping_standardization_config = null;
 
-        if ($setting && isset($setting['status']) && $setting['status'] == 1) {
-            $config = json_decode($setting['value'], true);
-            if (is_array($config)) {
-                $this->multiseller_freight_results = true;
-                $this->marketplace_shipping_standardization_config = $config;
-            }
-        }
-    }
-    
-        /**
-     * Detecta se a cotação envolve múltiplos sellers baseado nos SKUs
-     * 
-     * Analisa os SKUs dos itens procurando pelo padrão 'S' que indica seller.
-     * Exemplo: 'PROD123S456' onde '456' é o ID do seller.
-     * 
-     * @param array $items Lista de itens para cotação
-     * @return bool True se múltiplos sellers foram detectados
-     */
-    private function detectMultipleSellers(array $items): bool
-    {
-        // Verificar feature flag primeiro
-        
-        if (\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
-            return false;
-        }
-        
-        $sellers = [];
-        
-        foreach ($items as $item) {
-            if (!isset($item['sku'])) {
-                continue;
-            }
-            
-            $sku = $item['sku'];
-            
-            // Verificar se SKU contém padrão de seller (formato: PRODXSYYY)
-            if (strpos($sku, 'S') !== false) {
-                $parts = explode('S', $sku);
-                if (count($parts) >= 2) {
-                    // Extrair seller ID (parte após o 'S')
-                    $seller = str_replace($parts[0], '', $sku);
-                    $sellers[$seller] = true;
-                }
-            } else {
-                // SKU sem seller específico = seller padrão
-                $sellers['default'] = true;
-            }
-        }
-        
-        // Armazenar sellers detectados para uso posterior
-        $this->detected_sellers_cache = array_keys($sellers);
-        
-        // Retornar true se mais de um seller foi detectado
-        return count($sellers) > 1;
-    }
-    
-    
-    /**
-     * Agrupa itens por seller usando dados otimizados da quotes_ship
-     * 
-     * @param array $items Array de itens do carrinho
-     * @return array Array agrupado por seller
-     */
-    private function groupItemsBySellerOptimized(array $items): array
-    {
-        $sellerGroups = [];
-        $sellerInfo = [];
-        $statistics = [
-            'total_items' => count($items),
-            'found_in_quotes_ship' => 0,
-            'fallback_used' => 0
-        ];
-        
-        foreach ($items as $item) {
-            if (!isset($item['sku'])) {
-                error_log("CalculoFrete: Item sem SKU: " . json_encode($item));
-                continue;
-            }
-            
-            // Usar método otimizado
-            $sellerData = $this->getSellerFromLogQuotes($item['sku']);
-            $sellerId = $sellerData['seller_id'];
-            
-            // Estatísticas
-            if ($sellerData['sku_info']['reliable']) {
-                $statistics['found_in_quotes_ship']++;
-            } else {
-                $statistics['fallback_used']++;
-            }
-            
-            // Agrupar por seller
-            if (!isset($sellerGroups[$sellerId])) {
-                $sellerGroups[$sellerId] = [];
-                $sellerInfo[$sellerId] = [
-                    'seller_id' => $sellerId,
-                    'item_count' => 0,
-                    'product_ids' => []
-                ];
-            }
-            
-            // Adicionar item com informações
-            $item['seller_info'] = $sellerData;
-            $sellerGroups[$sellerId][] = $item;
-            
-            // Atualizar info do seller
-            $sellerInfo[$sellerId]['item_count']++;
-            if ($sellerData['product_id']) {
-                $sellerInfo[$sellerId]['product_ids'][] = $sellerData['product_id'];
-            }
-        }
-        
-        error_log("CalculoFrete: Agrupamento - " . count($sellerGroups) . " sellers, " . 
-                "{$statistics['found_in_quotes_ship']}/{$statistics['total_items']} encontrados na quotes_ship");
-        
-        return [
-            'groups' => $sellerGroups,
-            'seller_info' => $sellerInfo,
-            'statistics' => $statistics,
-            'total_sellers' => count($sellerGroups),
-            'total_items' => $statistics['total_items']
-        ];
-    }
-    /**
-     * Extrai seller ID do SKU
-     */
-    private function extractSellerFromSku(string $sku): string
-    {
-        if (preg_match('/S(\d+)/', $sku, $matches)) {
-            return $matches[1];
-        }
-
-        return '';
-    }
-        /**
-     * Verifica se execução paralela está disponível
-     * 
-     * Verifica se o sistema suporta execução paralela baseado em:
-     * - Disponibilidade do Guzzle
-     * - Feature flags
-     * - Configurações do sistema
-     * 
-     * @return bool True se paralelismo está disponível
-     */
-    private function isParallelExecutionAvailable(): bool
-    {
-        try {
-            // Verificar se feature flag de paralelismo está habilitada
-            if (!\App\Libraries\FeatureFlag\FeatureManager::isFeatureAvailable('oep-1921-muiltiseller-freight-results')) {
-                return false;
-            }
-            
-            // Verificar se Guzzle está disponível
-            if (!class_exists('\GuzzleHttp\Client')) {
-                error_log("CalculoFrete: Guzzle não disponível para execução paralela");
-                return false;
-            }
-            
-            // Verificar se promises estão disponíveis
-            if (!class_exists('\GuzzleHttp\Promise\Promise')) {
-                error_log("CalculoFrete: Guzzle Promises não disponível");
-                return false;
-            }
-            
-            // Verificar configuração de timeout
-            $maxExecutionTime = ini_get('max_execution_time');
-            if ($maxExecutionTime > 0 && $maxExecutionTime < 30) {
-                error_log("CalculoFrete: Timeout muito baixo para execução paralela: {$maxExecutionTime}s");
-                return false;
-            }
-            
-            return true;
-            
-        } catch (Exception $e) {
-            error_log("CalculoFrete: Erro ao verificar disponibilidade paralela: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Executa cotação tradicional (fallback)
-     *
-     * Utiliza a integração logística configurada para a loja, quando existir.
-     * Caso a loja não tenha integração ativa, a cotação é realizada usando a
-     * tabela interna como fallback.
-     *
-     * @param array $mkt Dados do marketplace. Pode ser no formato
-     *                   ['platform' => 'identificador'] ou [0 => 'identificador']
-     * @param array $items
-     * @param string|null $zipcode
-     * @param bool $checkStock
-     * @param bool $groupServices
-     * @return array
-     */
-    private function executeTraditionalQuote(array $mkt, array $items, ?string $zipcode, bool $checkStock, bool $groupServices): array
-    {
-        $log_name = __CLASS__ . '/' . __FUNCTION__;
-        $time_start = microtime(true);
-        
-        try {
-            // Log para debugging
-           get_instance()->log_data('batch', $log_name, "Executando cotação tradicional (fallback)", "I");
-            
-            // Validação básica do marketplace
-            if (empty($mkt) || !is_array($mkt)) {
-                return [
-                    'success' => false,
-                    'data' => [
-                        'message' => 'Parâmetro marketplace inválido',
-                        'execution_time' => microtime(true) - $time_start,
-                        'execution_mode' => 'traditional_error'
-                    ]
-                ];
-            }
-            
-            // Extrair identificador do marketplace
-            if (array_key_exists('platform', $mkt) && !empty($mkt['platform'])) {
-                $marketplace = $mkt['platform'];
-            } elseif (array_key_exists(0, $mkt) && !empty($mkt[0])) {
-                $marketplace = $mkt[0];
-            } else {
-                $marketplace = '';
-            }
-            
-            if (empty($marketplace)) {
-                return [
-                    'success' => false,
-                    'data' => [
-                        'message' => 'Marketplace não informado',
-                        'execution_time' => microtime(true) - $time_start,
-                        'execution_mode' => 'traditional_error'
-                    ]
-                ];
-            }
-            
-            // Validação de itens
-            if (empty($items) || !is_array($items)) {
-                return [
-                    'success' => false,
-                    'data' => [
-                        'message' => 'Itens não informados ou inválidos',
-                        'execution_time' => microtime(true) - $time_start,
-                        'execution_mode' => 'traditional_error'
-                    ]
-                ];
-            }
-            
-            // Validação de CEP
-            if (empty($zipcode)) {
-                return [
-                    'success' => false,
-                    'data' => [
-                        'message' => 'CEP não informado',
-                        'execution_time' => microtime(true) - $time_start,
-                        'execution_mode' => 'traditional_error'
-                    ]
-                ];
-            }
-            
-            // Determina a logística da loja. Caso não possua integração,
-            // será utilizado o fallback da tabela interna.
-            $storeId = 0;
-            if (!empty($items) && isset($items[0]['sku'])) {
-                $storeId = (int) $this->extractSellerFromSku($items[0]['sku']);
-            }
-
-            $integration = $this->getIntegrationLogistic($storeId);
-            $logisticType = $integration ?: 'TableInternal';
-            $freightSeller = $integration ? true : false;
-
-            if (is_array($this->validationResult) &&
-                isset(
-                    $this->validationResult['dataQuote'],
-                    $this->validationResult['cross_docking'],
-                    $this->validationResult['zipCodeSeller'],
-                    $this->validationResult['arrDataAd']
-                )) {
-                // Aproveita dados já validados na etapa inicial
-                $dataQuote = $this->validationResult['dataQuote'];
-                $dataQuote['crossDocking']  = $this->validationResult['cross_docking'];
-                $dataQuote['zipcodeSender'] = $this->validationResult['zipCodeSeller'];
-                $dataQuote['dataInternal']  = $this->validationResult['arrDataAd'];
-            } else {
-                $dataQuote = [
-                    'zipcodeRecipient' => $zipcode,
-                    'items'            => $items,
-                    'crossDocking'     => 0,
-                ];
-            }
-
-            $result = null;
-            try {
-                $this->instanceLogistic($logisticType, $storeId, $dataQuote, $freightSeller);
-                $logistic = $this->logistic;
-                $result = $logistic->getQuote($dataQuote, false);
-            } catch (InvalidArgumentException $e) {
-                get_instance()->log_data('batch', $log_name,
-                    'Falha de validação na cotação: ' . $e->getMessage(), 'E');
-
-                $executionTime = microtime(true) - $time_start;
-                return [
-                    'success' => false,
-                    'data' => [
-                        'message' => 'Erro na validação dos dados de cotação: ' . $e->getMessage(),
-                        'execution_time' => round($executionTime, 3),
-                        'execution_mode' => 'traditional_error'
-                    ]
-                ];
-            } catch (Exception $e) {
-                get_instance()->log_data('batch', $log_name,
-                    "Falha ao cotar com logística {$logisticType}: " . $e->getMessage(), 'E');
-
-                try {
-                    get_instance()->log_data('batch', $log_name,
-                        'Tentando fallback TableInternal', 'I');
-
-                    $this->instanceLogistic('TableInternal', $storeId, $dataQuote, $freightSeller);
-                    $logistic = $this->logistic;
-                    $result = $logistic->getQuote($dataQuote, false);
-
-                    get_instance()->log_data('batch', $log_name,
-                        'Fallback TableInternal executado', 'I');
-                } catch (InvalidArgumentException $fallbackException) {
-                    get_instance()->log_data('batch', $log_name,
-                        'Falha no fallback TableInternal: ' . $fallbackException->getMessage(), 'E');
-
-                    $executionTime = microtime(true) - $time_start;
-                    return [
-                        'success' => false,
-                        'data' => [
-                            'message' => 'Erro interno na cotação: ' . $fallbackException->getMessage(),
-                            'execution_time' => round($executionTime, 3),
-                            'execution_mode' => 'traditional_error'
-                        ]
-                    ];
-                } catch (Exception $fallbackException) {
-                    get_instance()->log_data('batch', $log_name,
-                        'Falha no fallback TableInternal: ' . $fallbackException->getMessage(), 'E');
-
-                    $executionTime = microtime(true) - $time_start;
-                    return [
-                        'success' => false,
-                        'data' => [
-                            'message' => 'Erro interno na cotação: ' . $fallbackException->getMessage(),
-                            'execution_time' => round($executionTime, 3),
-                            'execution_mode' => 'traditional_error'
-                        ]
-                    ];
-                }
-            }
-            
-            // Verificar se resultado é válido
-            if (!is_array($result)) {
-                get_instance()->log_data('batch', $log_name, "Resultado da cotação não é array válido", "E");
-                return [
-                    'success' => false,
-                    'data' => [
-                        'message' => 'Erro interno na cotação tradicional',
-                        'execution_time' => microtime(true) - $time_start,
-                        'execution_mode' => 'traditional_error'
-                    ]
-                ];
-            }
-            
-            // Adicionar informações de timing e modo de execução
-            $executionTime = microtime(true) - $time_start;
-            
-            if (!isset($result['data'])) {
-                $result['data'] = [];
-            }
-            
-            $result['data']['execution_time'] = round($executionTime, 3);
-            $result['data']['execution_mode'] = 'traditional';
-            
-            get_instance()->log_data('batch', $log_name, 
-                "Cotação tradicional executada com sucesso em " . round($executionTime, 3) . "s", "I");
-            
-            return $result;
-            
-        } catch (Exception $e) {
-            $executionTime = microtime(true) - $time_start;
-            
-            get_instance()->log_data('batch', $log_name, 
-                "Erro na cotação tradicional: " . $e->getMessage(), "E");
-            
-            return [
-                'success' => false,
-                'data' => [
-                    'message' => 'Erro interno na cotação: ' . $e->getMessage(),
-                    'execution_time' => round($executionTime, 3),
-                    'execution_mode' => 'traditional_error'
-                ]
-            ];
-        }
-    }
-    
-       /**
-     * Executa cotação multiseller com paralelismo
-     * 
-     * Coordena a execução de cotações para múltiplos sellers,
-     * utilizando execução paralela quando possível.
-     * 
-     * @param array $mkt Dados do marketplace
-     * @param array $items Lista de itens
-     * @param string|null $zipcode CEP de destino
-     * @param bool $checkStock Verificar estoque
-     * @param bool $groupServices Agrupar serviços
-     * @return array Resultado agregado
-     */
-    private function executeMultisellerQuote(array $mkt, array $items, ?string $zipcode, bool $checkStock, bool $groupServices): array
-    {
-        $time_start = microtime(true);
-        
-        try {
-            // Agrupar itens por seller
-            $sellerGroups = $this->groupItemsBySellerFromLogQuotes($items);
-            
-            // Log para debugging
-            $sellerCount = count($sellerGroups);
-            error_log("CalculoFrete: Executando cotação multiseller para {$sellerCount} sellers");
-            
-            // Se só tem um seller, usar cotação tradicional
-            if ($sellerCount <= 1) {
-                error_log("CalculoFrete: Apenas um seller detectado, usando cotação tradicional");
-                return $this->executeTraditionalQuote($mkt, $items, $zipcode, $checkStock, $groupServices);
-            }
-            
-            // Verificar se paralelismo está disponível
-            if ($this->isParallelExecutionAvailable() && $sellerCount > 1) {
-                error_log("CalculoFrete: Usando execução paralela para {$sellerCount} sellers");
-                return $this->executeParallelMultisellerQuote($mkt, $sellerGroups, $zipcode, $checkStock, $groupServices);
-            } else {
-                error_log("CalculoFrete: Usando execução sequencial para {$sellerCount} sellers");
-                return $this->executeSequentialMultisellerQuote($mkt, $sellerGroups, $zipcode, $checkStock, $groupServices);
-            }
-            
-        } catch (Exception $e) {
-            // Fallback para execução tradicional
-            error_log("CalculoFrete: Erro na cotação multiseller, fallback para tradicional: " . $e->getMessage());
-            return $this->executeTraditionalQuote($mkt, $items, $zipcode, $checkStock, $groupServices);
-        }
-    }
-    
-        /**
-     * Executa cotações multiseller em paralelo
-     * 
-     * Utiliza Guzzle promises para executar cotações de múltiplos
-     * sellers simultaneamente, melhorando significativamente a performance.
-     * 
-     * @param array $mkt Dados do marketplace
-     * @param array $sellerGroups Itens agrupados por seller
-     * @param string|null $zipcode CEP de destino
-     * @param bool $checkStock Verificar estoque
-     * @param bool $groupServices Agrupar serviços
-     * @return array Resultado agregado
-     */
-    private function executeParallelMultisellerQuote(array $mkt, array $sellerGroups, ?string $zipcode, bool $checkStock, bool $groupServices): array
-    {
-        $time_start = microtime(true);
-        
-        try {
-            
-            $promises = [];
-            
-            // Criar promises para cada seller
-            foreach ($sellerGroups as $seller => $sellerItems) {
-                try {
-                    // Preparar dados da cotação com argumentos corretos
-                
-                    $dataQuote = $this->prepareQuoteData($mkt, $sellerItems, $this->validationResult, $seller, $zipcode, $checkStock, $groupServices);
-                    if (!$dataQuote || !isset($dataQuote['dataQuote'])) {
-                        throw new Exception("Erro ao preparar dados de cotação para seller $seller");
-                    }
-                    
-                    // Instanciar logística corretamente
-                   $this->instanceLogistic($dataQuote['store_integration'], $dataQuote['store_id'], $mkt, false);
-                    
-                    if (!$this->logistic) {
-                        throw new Exception("Erro ao instanciar logística para seller $seller");
-                    }
-                    
-                    // Executar cotação assíncrona
-                    $asyncResult = $this->logistic->getQuoteAsync($dataQuote['dataQuote'], false);
-                    
-                    // Verificar se é Promise ou resultado direto
-                    if ($asyncResult instanceof PromiseInterface) {
-                        $promises[$seller] = $asyncResult->then(
-                            function ($result) use ($seller, $dataQuote) {
-                                return [
-                                    'seller' => $seller,
-                                    'store_id' => $dataQuote['store_id'],
-                                    'result' => $result,
-                                    'status' => 'success'
-                                ];
-                            },
-                            function ($error) use ($seller) {
-                                return [
-                                    'seller' => $seller,
-                                    'error' => $error,
-                                    'status' => 'error'
-                                ];
-                            }
-                        );
-                    } else {
-                        // Resultado síncrono - converter para Promise
-                        $promises[$seller] = Create::promiseFor([
-                            'seller' => $seller,
-                            'store_id' => $dataQuote['store_id'],
-                            'result' => $asyncResult,
-                            'status' => 'success'
-                        ]);
-                    }
-                    
-                } catch (Exception $e) {
-                    error_log("Erro na cotação do seller $seller: " . $e->getMessage());
-                    
-                    // Adicionar erro como Promise rejeitada
-                        $promises[] = Create::rejectionFor([
-                        'seller' => $seller, 
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-            
-            $processedResults = [];
-            foreach ($promises as $sellerKey => $promise) {
-                try {
-                    $result = $this->waitPromiseWithTimeout($promise, rand(10, 15));
-
-                    if (empty($result['result']['data']['shipping_methods'] ?? [])) {
-                        throw new Exception('Nenhum frete retornado');
-                    }
-
-                    $processedResults[$sellerKey] = $result;
-                } catch (Exception $e) {
-                    error_log("CalculoFrete: Timeout ou erro na promise do seller {$sellerKey}: " . $e->getMessage());
-
-                    return [
-                        'success' => false,
-                        'data' => [
-                            'message' => 'Falha na execução paralela do seller ' . $sellerKey,
-                            'seller_id' => $sellerKey,
-                            'execution_mode' => 'parallel_timeout',
-                            'error' => $e->getMessage()
-                        ]
-                    ];
-                }
-            }
-            
-            // Agregar resultados
-            $executionTime = microtime(true) - $time_start;
-            return $this->aggregateMultisellerResults($processedResults, $executionTime);
-            
-        } catch (Exception $e) {
-            error_log("CalculoFrete: Erro crítico na execução paralela: " . $e->getMessage());
-            
-            // Fallback para execução sequencial
-            return $this->executeSequentialMultisellerQuote($mkt, $sellerGroups, $zipcode, $checkStock, $groupServices);
-        }
-    }
-    
-        /**
-     * Executa cotações multiseller sequencialmente
-     * 
-     * Executa cotações de múltiplos sellers uma por vez,
-     * usado quando paralelismo não está disponível.
-     * 
-     * @param array $mkt Dados do marketplace
-     * @param array $sellerGroups Itens agrupados por seller
-     * @param string|null $zipcode CEP de destino
-     * @param bool $checkStock Verificar estoque
-     * @param bool $groupServices Agrupar serviços
-     * @return array Resultado agregado
-     */
-    private function executeSequentialMultisellerQuote(array $mkt, array $sellerGroups, ?string $zipcode, bool $checkStock, bool $groupServices): array
-    {
-        $time_start = microtime(true);
-        $results = [];
-        
-        try {
-            foreach ($sellerGroups as $seller => $sellerItems) {
-                $sellerStartTime = microtime(true);
-                
-                try {
-                    // Preparar dados primeiro
-                $preparedData = $this->prepareQuoteData(
-                    $mkt,
-                    $sellerItems,
-                    $this->validationResult,
-                    $seller,
-                    $zipcode,
-                    $checkStock,
-                    $groupServices
-                );
-                $this->instanceLogistic(
-                    $preparedData['store_integration'],
-                    $preparedData['seller_info']['seller_id'],
-                    $preparedData['dataQuote'],
-                    true
-                );
-                // Depois chamar com dados preparados
-                $result = $this->executeSingleSellerQuote($preparedData);
-                    
-                    // Adicionar timing específico do seller
-                    if (isset($result['data'])) {
-                        $result['data']['seller_execution_time'] = round(microtime(true) - $sellerStartTime, 3);
-                        $result['data']['seller_execution_mode'] = 'sequential';
-                    }
-                    
-                    $results[$seller] = $result;
-                    
-                } catch (Exception $e) {
-                    error_log("CalculoFrete: Erro na cotação sequencial do seller {$seller}: " . $e->getMessage());
-                    
-                    $results[$seller] = [
-                        'success' => false,
-                        'data' => [
-                            'message' => 'Erro na cotação do seller ' . $seller,
-                            'seller_id' => $seller,
-                            'seller_execution_time' => round(microtime(true) - $sellerStartTime, 3),
-                            'seller_execution_mode' => 'sequential_error',
-                            'error' => $e->getMessage()
-                        ]
-                    ];
-                }
-            }
-            
-            // Agregar resultados
-            $executionTime = microtime(true) - $time_start;
-            return $this->aggregateMultisellerResults($results, $executionTime);
-            
-        } catch (Exception $e) {
-            error_log("CalculoFrete: Erro crítico na execução sequencial: " . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'data' => [
-                    'message' => 'Erro crítico na cotação multiseller sequencial',
-                    'execution_time' => microtime(true) - $time_start,
-                    'execution_mode' => 'sequential_critical_error',
-                    'error' => $e->getMessage()
-                ]
-            ];
-        }
-    }
-    
-        /**
-     * Executa cotação para um seller específico
-     * 
-     * Executa cotação para itens de um seller específico,
-     * usado tanto na execução paralela quanto sequencial.
-     * 
-     * @param array $mkt Dados do marketplace
-     * @param array $sellerItems Itens do seller específico
-     * @param string|null $zipcode CEP de destino
-     * @param bool $checkStock Verificar estoque
-     * @param bool $groupServices Agrupar serviços
-     * @param string $seller ID do seller
-     * @return array Resultado da cotação do seller
-     */
-    private function executeSingleSellerQuote(array $preparedData): array
-    {
-        // VALIDAÇÃO ROBUSTA NO INÍCIO:
-        if (!isset($preparedData['seller_info']) || !is_array($preparedData['seller_info'])) {
-            error_log("executeSingleSellerQuote: seller_info ausente nos dados preparados");
-            error_log("preparedData keys: " . implode(', ', array_keys($preparedData)));
-            
-            return [
-                'success' => false,
-                'data' => [
-                    'message' => 'Erro: Informações do seller não encontradas nos dados preparados',
-                    'error_type' => 'missing_seller_info',
-                    'available_keys' => array_keys($preparedData)
-                ]
-            ];
-        }
-        
-        if (!isset($preparedData['seller_info']['seller_id'])) {
-            error_log("executeSingleSellerQuote: seller_id ausente em seller_info");
-            
-            return [
-                'success' => false,
-                'data' => [
-                    'message' => 'Erro: ID do seller não encontrado',
-                    'error_type' => 'missing_seller_id'
-                ]
-            ];
-        }
-        
-        $sellerId = $preparedData['seller_info']['seller_id'];
-        error_log("=== executeSingleSellerQuote Seller: {$sellerId} ===");
-        
-        try {
-            // Validar dados preparados
-            if (!isset($preparedData['logistic']) || !$preparedData['logistic']) {
-                throw new Exception("Configuração logística não encontrada para seller {$sellerId}");
-            }
-            
-            $logisticConfig = $preparedData['logistic'];
-            error_log("executeSingleSellerQuote: Configuração logística: " . json_encode($logisticConfig));
-            
-            // Instanciar Logistic com tratamento de erro
-            try {
-                // Verificar se já existe instância
-                $this->instanceLogistic(
-                    $logisticConfig['type'] ?? 'sellercenter',
-                    $sellerId,
-                    $preparedData['dataQuote'],
-                    $logisticConfig['seller'] ?? false
-                );
-                $this->logistic = $this->instance->logistic;
-                
-            } catch (Exception $logisticException) {
-                error_log("executeSingleSellerQuote: Erro ao instanciar Logistic: " . $logisticException->getMessage());
-                
-                // Tentar com configuração padrão
-                $defaultConfig = [
-                    'type' => 'sellercenter',
-                    'seller' => false,
-                ];
-
-                error_log("executeSingleSellerQuote: Tentando com configuração padrão");
-                $this->instanceLogistic(
-                    $defaultConfig['type'],
-                    $sellerId,
-                    $preparedData['dataQuote'],
-                    $defaultConfig['seller']
-                );
-                $this->logistic = $this->instance->logistic;
-            }
-            
-            error_log("executeSingleSellerQuote: Logistic instanciada com sucesso para seller {$sellerId}");
-            
-            // Chamar getQuote com dados preparados
-            error_log("executeSingleSellerQuote: Chamando getQuote para seller {$sellerId}");
-            
-            $quote = $this->logistic->getQuote(
-                $preparedData['dataQuote'],
-                $preparedData['zipCodeSeller'],
-                $preparedData['cross_docking'],
-                $preparedData['totalPrice'],
-                $preparedData['store_integration'],
-                $preparedData['arrDataAd'],
-                $preparedData['dataSkus'],
-                $preparedData['checkStock'],
-                $preparedData['groupServices']
-            );
-            
-            error_log("executeSingleSellerQuote: getQuote executado para seller {$sellerId}");
-            error_log("executeSingleSellerQuote: Resultado: " . json_encode($quote));
-            
-            // Verificar resultado
-            if (!$quote || !isset($quote['success'])) {
-                throw new Exception("Resultado inválido da cotação para seller {$sellerId}");
-            }
-            
-            return $quote;
-            
-        } catch (Exception $e) {
-            error_log("executeSingleSellerQuote: Erro seller {$sellerId}: " . $e->getMessage());
-            error_log("executeSingleSellerQuote: Stack trace: " . $e->getTraceAsString());
-            
-            return [
-                'success' => false,
-                'data' => [
-                    'message' => 'Erro na cotação do seller ' . $sellerId . ': ' . $e->getMessage(),
-                    'seller_id' => $sellerId,
-                    'error_type' => 'execution_error',
-                    'error_details' => [
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine(),
-                        'code' => $e->getCode()
-                    ]
-                ]
-            ];
-        }
-    }
-    
-        /**
-     * Agrega resultados de múltiplos sellers
-     * 
-     * Combina resultados de cotações de múltiplos sellers em um
-     * resultado único, organizando por métodos de envio e calculando
-     * totais consolidados.
-     * 
-     * @param array $results Resultados por seller
-     * @param float $executionTime Tempo total de execução
-     * @return array Resultado agregado final
-     */
-    private function aggregateMultisellerResults(array $results, float $executionTime = 0): array
-    {
-        try {
-            $aggregatedData = [
-                'success' => true,
-                'execution_time' => round($executionTime, 3),
-                'execution_mode' => 'multiseller',
-                'seller_count' => count($results),
-                'sellers' => [],
-                'shipping_methods' => [],
-                'summary' => [
-                    'total_sellers' => count($results),
-                    'successful_sellers' => 0,
-                    'failed_sellers' => 0,
-                    'total_shipping_options' => 0
-                ]
-            ];
-            
-            $allShippingMethods = [];
-            $allSuccessful = true;
-
-            // Regra de agregacao
-            $rule = $this->multiseller_params['rule'] ?? 'menor_preco';
-            error_log("aggregateMultisellerResults: regra utilizada - {$rule}");
-
-            $chosenMethod = null;
-            
-            // Processar resultados de cada seller
-            foreach ($results as $seller => $result) {
-                $sellerData = [
-                    'seller_id' => $seller,
-                    'success' => $result['success'] ?? false,
-                    'execution_time' => $result['data']['seller_execution_time'] ?? 0,
-                    'execution_mode' => $result['data']['seller_execution_mode'] ?? 'unknown'
-                ];
-                
-                if ($result['success'] && isset($result['data']['shipping_methods'])) {
-                    $aggregatedData['summary']['successful_sellers']++;
-                    
-                    $sellerData['shipping_methods'] = $result['data']['shipping_methods'];
-                    $sellerData['item_count'] = $result['data']['seller_item_count'] ?? 0;
-                    
-                    // Agregar métodos de envio
-                    foreach ($result['data']['shipping_methods'] as $method) {
-                        $methodKey = $method['name'] ?? 'unknown';
-                        
-                        if (!isset($allShippingMethods[$methodKey])) {
-                            $allShippingMethods[$methodKey] = [
-                                'name' => $method['name'] ?? 'Método Desconhecido',
-                                'price' => 0,
-                                'deadline' => 0,
-                                'sellers' => [],
-                                'total_price' => 0,
-                                'max_deadline' => 0
-                            ];
-                        }
-                        
-                        $allShippingMethods[$methodKey]['sellers'][] = [
-                            'seller_id' => $seller,
-                            'price' => $method['price'] ?? 0,
-                            'deadline' => $method['deadline'] ?? 0
-                        ];
-                        
-                        $allShippingMethods[$methodKey]['total_price'] += ($method['price'] ?? 0);
-                        $allShippingMethods[$methodKey]['max_deadline'] = max(
-                            $allShippingMethods[$methodKey]['max_deadline'],
-                            $method['deadline'] ?? 0
-                        );
-                    }
-                    
-                    $aggregatedData['summary']['total_shipping_options'] += count($result['data']['shipping_methods']);
-                    
-                } else {
-                    $aggregatedData['summary']['failed_sellers']++;
-                    $sellerData['error'] = $result['data']['message'] ?? 'Erro desconhecido';
-                    $allSuccessful = false;
-                }
-                
-                $aggregatedData['sellers'][] = $sellerData;
-            }
-            
-            // Finalizar métodos de envio agregados
-            foreach ($allShippingMethods as $methodKey => $method) {
-                $methodData = [
-                    'name' => $method['name'],
-                    'total_price' => round($method['total_price'], 2),
-                    'max_deadline' => $method['max_deadline'],
-                    'seller_count' => count($method['sellers']),
-                    'sellers' => $method['sellers']
-                ];
-
-                $aggregatedData['shipping_methods'][] = $methodData;
-
-                if ($rule === 'menor_preco') {
-                    if ($chosenMethod === null || $methodData['total_price'] < $chosenMethod['total_price']) {
-                        $chosenMethod = $methodData;
-                    }
-                } else { // menor_prazo
-                    if ($chosenMethod === null || $methodData['max_deadline'] < $chosenMethod['max_deadline']) {
-                        $chosenMethod = $methodData;
+        // Formata a cotação para o formato multiseller
+        foreach ($quote['data'] as &$data) {
+            if (isset($data['skuseller'])) {
+                $sku = $data['skuseller'];
+                if (isset($dataSkus[$sku])) {
+                    $data['current_qty'] = $dataSkus[$sku]['current_qty'];
+                    $data['sale_price'] = $dataSkus[$sku]['sale_price'];
+                    $data['list_price'] = $dataSkus[$sku]['list_price'];
+                    $data['store_id'] = $dataSkus[$sku]['store_id'];
+                    $data['prd_id'] = $dataSkus[$sku]['prd_id'];
+                    if (isset($dataSkus[$sku]['seller_id'])) {
+                        $data['seller_id'] = $dataSkus[$sku]['seller_id'];
                     }
                 }
             }
-
-            if ($chosenMethod !== null) {
-                $aggregatedData['chosen_shipping'] = $chosenMethod;
-                error_log("aggregateMultisellerResults: metodo escolhido - {$chosenMethod['name']} preco {$chosenMethod['total_price']} prazo {$chosenMethod['max_deadline']}");
+            if (isset($arrDataAd[$sku])) {
+                $data['product_data'] = $arrDataAd[$sku];
             }
-            
-            // Determinar sucesso geral
-            $aggregatedData['success'] = $allSuccessful;
-
-            if (!$allSuccessful) {
-                $aggregatedData['message'] = 'Não há cotação de frete disponível para este carrinho';
-            }
-            
-            // Log para debugging
-            error_log("CalculoFrete: Agregação concluída - {$aggregatedData['summary']['successful_sellers']} sucessos, {$aggregatedData['summary']['failed_sellers']} falhas");
-            
-            return [
-                'success' => $aggregatedData['success'],
-                'data' => $aggregatedData
-            ];
-            
-        } catch (Exception $e) {
-            error_log("CalculoFrete: Erro na agregação de resultados: " . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'data' => [
-                    'message' => 'Erro na agregação de resultados multiseller',
-                    'execution_time' => round($executionTime, 3),
-                    'execution_mode' => 'multiseller_aggregation_error',
-                    'error' => $e->getMessage()
-                ]
-            ];
         }
+
+        return $quote;
     }
-
-    private function waitPromiseWithTimeout(PromiseInterface $promise, int $seconds)
-    {
-        if (function_exists('GuzzleHttp\\Promise\\timeout')) {
-            return \GuzzleHttp\Promise\timeout($promise, $seconds)->wait();
-        }
-
-        if (!function_exists('pcntl_alarm')) {
-            return $promise->wait();
-        }
-
-        pcntl_async_signals(true);
-        $timedOut = false;
-        pcntl_signal(SIGALRM, function () use (&$timedOut) {
-            $timedOut = true;
-            throw new \RuntimeException('Promise timeout');
-        });
-        pcntl_alarm($seconds);
-
-        try {
-            $result = $promise->wait();
-            pcntl_alarm(0);
-            return $result;
-        } catch (\Throwable $e) {
-            pcntl_alarm(0);
-            if ($timedOut) {
-                throw new \RuntimeException('Promise timeout');
-            }
-            throw $e;
-        }
-    }
-
-    /**
-     * Valida e corrige configuração logística
-     *
-     * @param array $logisticConfig Configuração logística
-     * @param string $sellerId ID do seller
-     * @return array Configuração validada
-     */
-    private function validateLogisticConfig(array $logisticConfig, string $sellerId): array
-    {
-        error_log("validateLogisticConfig: Validando configuração para seller {$sellerId}");
-        
-        // Configuração padrão
-        $defaultConfig = [
-            'type' => 'sellercenter',
-            'seller' => false,
-            'sellercenter' => true,
-            'store_id' => $sellerId
-        ];
-        
-        // Mesclar com configuração padrão
-        $validatedConfig = array_merge($defaultConfig, $logisticConfig);
-        
-        // Validações específicas
-        if (empty($validatedConfig['type'])) {
-            $validatedConfig['type'] = 'sellercenter';
-        }
-        
-        if (!isset($validatedConfig['seller'])) {
-            $validatedConfig['seller'] = false;
-        }
-        
-        if (!isset($validatedConfig['sellercenter'])) {
-            $validatedConfig['sellercenter'] = true;
-        }
-        
-        error_log("validateLogisticConfig: Configuração validada: " . json_encode($validatedConfig));
-        
-        return $validatedConfig;
-    }
-        /**
-     * Prepara dados da cotação no formato esperado pelo Logistic
-     * 
-     * Converte os parâmetros do formatQuote para o formato esperado
-     * pelo método getQuote() da classe Logistic.
-     * 
-     * @param array $mkt Dados do marketplace
-     * @param array $items Lista de itens
-     * @param string|null $zipcode CEP de destino
-     * @param bool $checkStock Verificar estoque
-     * @param bool $groupServices Agrupar serviços
-     * @return array Dados formatados para getQuote
-     */
-    /**
-     * Prepara dados para cotação individual de um seller
-     */
-    private function prepareQuoteData(array $mkt, array $sellerItems, array $validationResult, string $sellerId, ?string $zipcode, bool $checkStock, bool $groupServices): array
-    {
-        error_log("=== prepareQuoteData Seller: {$sellerId} ===");
-        
-        // Extrair dados de validação
-        $arrDataAd = $validationResult['arrDataAd'];
-        $dataSkus = $validationResult['dataSkus'];
-        $originalDataQuote = $validationResult['dataQuote'];
-        
-        // Preparar dados específicos do seller
-        $sellerDataQuote = [
-            'zipcodeRecipient' => $zipcode,
-            'items' => []
-        ];
-        
-        $sellerArrDataAd = [];
-        $sellerDataSkus = [];
-        $totalPrice = 0;
-        $cross_docking = 0;
-        $zipCodeSeller = null;
-        $store_integration = null;
-        $logistic = null;
-        $firstItemData = null;
-        
-        // Processar items do seller
-        foreach ($sellerItems as $item) {
-            $sku = $item['sku'];
-            
-            // Verificar se item existe nos dados validados
-            if (!isset($arrDataAd[$sku])) {
-                error_log("prepareQuoteData: SKU {$sku} não encontrado em arrDataAd");
-                continue;
-            }
-            
-            $itemData = $arrDataAd[$sku];
-            
-            // Verificar se pertence ao seller correto
-            if ($itemData['store_id'] != $sellerId) {
-                error_log("prepareQuoteData: SKU {$sku} não pertence ao seller {$sellerId}");
-                continue;
-            }
-            
-            // Guardar primeiro item para configuração
-            if ($firstItemData === null) {
-                $firstItemData = $itemData;
-            }
-            
-            // Adicionar aos dados do seller
-            $sellerArrDataAd[$sku] = $itemData;
-            $sellerDataSkus[$sku] = $dataSkus[$sku];
-            
-            // Encontrar item correspondente no dataQuote original
-            foreach ($originalDataQuote['items'] as $quotedItem) {
-                if ($quotedItem['sku'] === $sku) {
-                    $sellerDataQuote['items'][] = $quotedItem;
-                    $totalPrice += $quotedItem['valor'];
-                    break;
-                }
-            }
-            
-            // Calcular crossdocking (pior tempo)
-            if (isset($itemData['crossdocking'])) {
-                $itemCrossdocking = (int)$itemData['crossdocking'];
-                if ($itemCrossdocking > $cross_docking) {
-                    $cross_docking = $itemCrossdocking;
-                }
-            }
-        }
-        
-        // Validar se encontrou items
-        if (empty($sellerDataQuote['items']) || $firstItemData === null) {
-            throw new Exception("Nenhum item válido encontrado para seller {$sellerId}");
-        }
-        
-        // Configurar dados do seller usando primeiro item
-        $zipCodeSeller = $firstItemData['zipcode'];
-        
-        // Obter integração da loja
-        try {
-            $store_integration = $this->getStoreIntegrationStore($firstItemData['store_id']);
-            error_log("prepareQuoteData: store_integration para seller {$sellerId}: " . $store_integration);
-        } catch (Exception $e) {
-            error_log("prepareQuoteData: Erro ao obter store_integration para seller {$sellerId}: " . $e->getMessage());
-            $store_integration = 'default'; // Fallback
-        }
-        
-        // Obter configuração logística com validação robusta
-        try {
-            $logisticConfig = [
-                'freight_seller' => $firstItemData['freight_seller'] ?? 0,
-                'freight_seller_type' => $firstItemData['freight_seller_type'] ?? null,
-                'store_id' => $firstItemData['store_id']
-            ];
-            
-            error_log("prepareQuoteData: Configuração logística para seller {$sellerId}: " . json_encode($logisticConfig));
-            
-            $logistic = $this->getLogisticStore($logisticConfig);
-            
-            // Validar se logistic foi obtida corretamente
-            if (!$logistic || !is_array($logistic)) {
-                error_log("prepareQuoteData: getLogisticStore retornou dados inválidos para seller {$sellerId}");
-                throw new Exception("Configuração logística inválida");
-            }
-            
-            // Verificar campos obrigatórios
-            if (!isset($logistic['type'])) {
-                error_log("prepareQuoteData: Campo 'type' ausente na configuração logística");
-                $logistic['type'] = 'sellercenter'; // Fallback padrão
-            }
-            
-            error_log("prepareQuoteData: Configuração logística válida para seller {$sellerId}: " . json_encode($logistic));
-            
-        } catch (Exception $e) {
-            error_log("prepareQuoteData: Erro ao obter configuração logística para seller {$sellerId}: " . $e->getMessage());
-            
-            // Configuração logística padrão como fallback
-            $logistic = [
-                'type' => 'sellercenter',
-                'seller' => false,
-                'sellercenter' => true,
-                'store_id' => $sellerId
-            ];
-            
-            error_log("prepareQuoteData: Usando configuração logística padrão para seller {$sellerId}");
-        }
-        
-        // Validações finais
-        if ($zipCodeSeller === null) {
-            throw new Exception("CEP do seller {$sellerId} não encontrado");
-        }
-        
-        error_log("prepareQuoteData Seller {$sellerId}: " . count($sellerDataQuote['items']) . " items, Total: R$ {$totalPrice}");
-        // GARANTIR que seller_info sempre existe:
-        $sellerInfo = [
-            'seller_id' => $sellerId,
-            'items_count' => count($sellerDataQuote['items']),
-            'total_price' => $totalPrice,
-            'crossdocking_days' => $cross_docking,
-            'zipcode_seller' => $zipCodeSeller,
-            'integration_type' => $store_integration
-        ];
-        return [
-            // Dados principais para getQuote()
-            'dataQuote' => $sellerDataQuote,
-            'zipCodeSeller' => $zipCodeSeller,
-            'cross_docking' => $cross_docking,
-            'totalPrice' => $totalPrice,
-            'store_integration' => $store_integration,
-            'arrDataAd' => $sellerArrDataAd,
-            'dataSkus' => $sellerDataSkus,
-            'checkStock' => $checkStock,
-            'groupServices' => $groupServices,
-            
-            // Configuração logística validada
-            'logistic' => $logistic,
-            
-            // Dados adicionais para contexto
-           'seller_info' => $sellerInfo,
-        ];
-    }
-
-     /**
-     * Recupera informações do seller e produto da tabela log_quotes
-     * 
-     * @param string $sku SKU do produto
-     * @return array Informações do seller e produto
-     */
-    private function getSellerFromLogQuotes(string $sku): array
-    {
-        try {
-            // Validação de entrada
-            if (empty($sku) || !is_string($sku)) {
-                error_log("CalculoFrete: SKU inválido: " . var_export($sku, true));
-                return $this->getDefaultSellerInfo($sku, 'invalid_sku');
-            }
-
-            error_log("CalculoFrete: Consultando log_quotes para SKU: {$sku}");
-
-            // Consulta na log_quotes (dados reais de cotações)
-            $query = $this->readonlydb->select('
-                    lq.skumkt,
-                    lq.product_id,
-                    lq.store_id,
-                    lq.seller_id,
-                    lq.marketplace,
-                    lq.integration,
-                    lq.success,
-                    lq.created_at,
-                    lq.updated_at
-                ')
-                ->where('lq.skumkt', $sku)
-                ->where('lq.success', 1)  // Apenas cotações bem-sucedidas
-                ->order_by('lq.updated_at', 'DESC')
-                ->limit(1)
-                ->get('log_quotes lq');
-
-            // Verificar se a consulta foi bem-sucedida
-            if ($query === false) {
-                error_log("CalculoFrete: Erro na consulta log_quotes para SKU {$sku}");
-                return $this->getDefaultSellerInfo($sku, 'query_failed');
-            }
-
-            // Verificar se há resultados
-            if ($query->num_rows() === 0) {
-                error_log("CalculoFrete: SKU {$sku} não encontrado na log_quotes");
-                return $this->getDefaultSellerInfo($sku, 'not_found_in_log_quotes');
-            }
-
-            // Obter dados
-            $logData = $query->row_array();
-
-            // Validar dados retornados
-            if (!$logData || !isset($logData['store_id']) || !isset($logData['product_id'])) {
-                error_log("CalculoFrete: Dados inválidos da log_quotes para SKU {$sku}");
-                return $this->getDefaultSellerInfo($sku, 'invalid_data_returned');
-            }
-
-            // Usar store_id como seller_id se seller_id estiver vazio (conforme saveLogQuotes)
-            $sellerId = !empty($logData['seller_id']) ? $logData['seller_id'] : $logData['store_id'];
-
-            error_log("CalculoFrete: Dados encontrados - SKU: {$sku}, Product: {$logData['product_id']}, Store: {$logData['store_id']}, Seller: {$sellerId}");
-
-            return [
-                'seller_id' => (string) $sellerId,
-                'product_id' => (string) $logData['product_id'],
-                'sku_info' => [
-                    'original_sku' => $sku,
-                    'data_source' => 'log_quotes_optimized',
-                    'extraction_method' => 'database_log_quotes',
-                    'marketplace' => $logData['marketplace'],
-                    'integration' => $logData['integration'],
-                    'store_id' => $logData['store_id'],
-                    'last_updated' => $logData['updated_at'],
-                    'reliable' => true,
-                    'complete_data' => true
-                ]
-            ];
-
-        } catch (Exception $e) {
-            error_log("CalculoFrete: Exceção em getSellerFromLogQuotes para SKU {$sku}: " . $e->getMessage());
-            return $this->getDefaultSellerInfo($sku, 'exception_occurred');
-        }
-    }
-
-    /**
-     * Analisa requisição multiseller usando dados de validItemsQuote()
-     * Usa dados já processados em vez de reprocessar
-     * 
-     * @param array $mkt Dados do marketplace
-     * @param array $items Itens do carrinho (para compatibilidade)
-     * @param array $validationResult Resultado do validItemsQuote()
-     * @param string|null $zipcode CEP de destino
-     * @return array Análise da requisição
-     */
-    private function analyzeMultisellerRequestOptimized(array $mkt, array $items, array $validationResult, ?string $zipcode): array
-    {
-        error_log("=== ANÁLISE MULTISELLER OTIMIZADA (validItemsQuote) ===");
-        
-        // Usar dados já processados de validItemsQuote
-        $multisellerInfo = $validationResult['multiseller_info'];
-        $storeIds = $validationResult['storeIds'];
-        $sellerIds = $validationResult['sellerIds'] ?? [];
-        $arrDataAd = $validationResult['arrDataAd'];
-        $dataQuote = $validationResult['dataQuote'];
-        
-        $isMultiseller = false;
-        $totalSellers = 1;
-        $sellerGroups = [];
-        $sellerInfo = [];
-        
-        if ($multisellerInfo && $multisellerInfo['is_multiseller']) {
-            // É multiseller - usar dados de validItemsQuote
-            $totalSellers = count($sellerIds) > 0 ? count($sellerIds) : count($storeIds);
-            $isMultiseller = true;
-
-            error_log("CalculoFrete: Multiseller detectado via validItemsQuote - {$totalSellers} sellers");
-
-            // Converter estrutura de validItemsQuote para formato esperado
-            $groupKey = 'items_by_seller';
-            if (!empty($multisellerInfo['items_by_seller'])) {
-                $groupData = $multisellerInfo['items_by_seller'];
-            } else {
-                $groupKey = 'items_by_store';
-                $groupData = $multisellerInfo['items_by_store'];
-            }
-
-            foreach ($groupData as $sellerId => $skus) {
-                $sellerGroups[$sellerId] = [];
-                $sellerInfo[$sellerId] = [
-                    'seller_id' => $sellerId,
-                    'item_count' => count($skus),
-                    'product_ids' => [],
-                    'data_source' => 'validItemsQuote'
-                ];
-
-                foreach ($skus as $sku) {
-                    foreach ($dataQuote['items'] as $quotedItem) {
-                        if ($quotedItem['sku'] === $sku) {
-                            $quotedItem['seller_info'] = [
-                                'seller_id' => $sellerId,
-                                'product_id' => $arrDataAd[$sku]['prd_id'] ?? null,
-                                'sku_info' => [
-                                    'original_sku' => $sku,
-                                    'data_source' => 'validItemsQuote_optimized',
-                                    'extraction_method' => 'sellercenter_last_post',
-                                    'store_id' => $arrDataAd[$sku]['store_id'] ?? $sellerId,
-                                    'reliable' => true,
-                                    'complete_data' => true
-                                ]
-                            ];
-
-                            $sellerGroups[$sellerId][] = $quotedItem;
-
-                            if (isset($arrDataAd[$sku]['prd_id'])) {
-                                $sellerInfo[$sellerId]['product_ids'][] = $arrDataAd[$sku]['prd_id'];
-                            }
-
-                            break;
-                        }
-                    }
-                }
-            }
-            
-        } else {
-            // Não é multiseller - usar dados tradicionais
-            $storeId = $validationResult['storeId'];
-            $totalSellers = 1;
-            $isMultiseller = false;
-            
-            error_log("CalculoFrete: Seller único detectado via validItemsQuote - Store: {$storeId}");
-            
-            // Criar grupo único
-            $sellerGroups[$storeId] = [];
-            $sellerInfo[$storeId] = [
-                'seller_id' => $storeId,
-                'item_count' => count($dataQuote['items']),
-                'product_ids' => [],
-                'data_source' => 'validItemsQuote'
-            ];
-            
-            foreach ($dataQuote['items'] as $quotedItem) {
-                // Adicionar informações do seller
-                $quotedItem['seller_info'] = [
-                    'seller_id' => $storeId,
-                    'product_id' => $arrDataAd[$quotedItem['sku']]['prd_id'] ?? null,
-                    'sku_info' => [
-                        'original_sku' => $quotedItem['sku'],
-                        'data_source' => 'validItemsQuote_single',
-                        'extraction_method' => 'sellercenter_last_post',
-                        'store_id' => $storeId,
-                        'reliable' => true,
-                        'complete_data' => true
-                    ]
-                ];
-                
-                $sellerGroups[$storeId][] = $quotedItem;
-                
-                // Adicionar product_id se disponível
-                if (isset($arrDataAd[$quotedItem['sku']]['prd_id'])) {
-                    $sellerInfo[$storeId]['product_ids'][] = $arrDataAd[$quotedItem['sku']]['prd_id'];
-                }
-            }
-        }
-        
-        // Determinar estratégia de execução
-        $shouldParallelize = false;
-        if ($isMultiseller) {
-            $parallelAvailable = $this->isParallelExecutionAvailable();
-            $worthParallelizing = $totalSellers >= 2;
-            $shouldParallelize = $parallelAvailable && $worthParallelizing;
-        }
-        
-        $result = [
-            'is_multiseller' => $isMultiseller,
-            'should_parallelize' => $shouldParallelize,
-            'total_sellers' => $totalSellers,
-            'seller_groups' => $sellerGroups,
-            'seller_info' => $sellerInfo,
-            'store_ids' => $storeIds,
-            'statistics' => [
-                'total_items' => count($items),
-                'found_in_validation' => count($arrDataAd),
-                'data_source' => 'validItemsQuote'
-            ],
-            'analysis_details' => [
-                'execution_mode' => $shouldParallelize ? 'parallel' : ($isMultiseller ? 'sequential' : 'traditional'),
-                'data_quality' => '100%', // Dados já validados
-                'optimization' => 'validItemsQuote_based'
-            ]
-        ];
-        
-        error_log("CalculoFrete: Análise validItemsQuote - {$totalSellers} sellers, " .
-                "Modo: {$result['analysis_details']['execution_mode']}, " .
-                "Items: {$result['statistics']['total_items']}");
-        
-        return $result;
-    }
-
-    /**
-     * Verifica se uma tabela existe no banco de dados
-     * 
-     * @param string $tableName Nome da tabela
-     * @return bool True se existe, false caso contrário
-     */
-    private function tableExists(string $tableName): bool
-    {
-        try {
-            $query = $this->readonlydb->query("SHOW TABLES LIKE '{$tableName}'");
-            return $query !== false && $query->num_rows() > 0;
-        } catch (Exception $e) {
-            error_log("CalculoFrete: Erro ao verificar existência da tabela {$tableName}: " . $e->getMessage());
-            return false;
-        }
-    }
-    /**
-     * Retorna informações padrão quando não é possível obter da quotes_ship
-     * 
-     * @param string $sku SKU do produto
-     * @param string $reason Motivo do fallback
-     * @return array Informações padrão
-     */
-    private function getDefaultSellerInfo(string $sku, string $reason): array
-    {
-        error_log("CalculoFrete: Usando fallback para SKU {$sku} - Motivo: {$reason}");
-        
-        return [
-            'seller_id' => 'default',
-            'product_id' => null,
-            'sku_info' => [
-                'original_sku' => $sku,
-                'data_source' => 'fallback',
-                'extraction_method' => $reason,
-                'reliable' => false,
-                'complete_data' => false,
-                'fallback_reason' => $reason
-            ]
-        ];
-    }
-    /**
-     * Agrupa itens por seller usando dados da log_quotes
-     * 
-     * @param array $items Array de itens do carrinho
-     * @return array Array agrupado por seller
-     */
-    private function groupItemsBySellerFromLogQuotes(array $items): array
-    {
-        $sellerGroups = [];
-        $sellerInfo = [];
-        $statistics = [
-            'total_items' => count($items),
-            'found_in_log_quotes' => 0,
-            'fallback_used' => 0
-        ];
-        
-        foreach ($items as $item) {
-            if (!isset($item['sku'])) {
-                error_log("CalculoFrete: Item sem SKU: " . json_encode($item));
-                continue;
-            }
-            
-            // Usar método otimizado
-            $sellerData = $this->getSellerFromLogQuotes($item['sku']);
-            $sellerId = $sellerData['seller_id'];
-            
-            // Estatísticas
-            if ($sellerData['sku_info']['reliable']) {
-                $statistics['found_in_log_quotes']++;
-            } else {
-                $statistics['fallback_used']++;
-            }
-            
-            // Agrupar por seller
-            if (!isset($sellerGroups[$sellerId])) {
-                $sellerGroups[$sellerId] = [];
-                $sellerInfo[$sellerId] = [
-                    'seller_id' => $sellerId,
-                    'item_count' => 0,
-                    'product_ids' => []
-                ];
-            }
-            
-            // Adicionar item com informações
-            $item['seller_info'] = $sellerData;
-            $sellerGroups[$sellerId][] = $item;
-            
-            // Atualizar info do seller
-            $sellerInfo[$sellerId]['item_count']++;
-            if ($sellerData['product_id']) {
-                $sellerInfo[$sellerId]['product_ids'][] = $sellerData['product_id'];
-            }
-        }
-        
-        error_log("CalculoFrete: Agrupamento log_quotes - " . count($sellerGroups) . " sellers, " . 
-                "{$statistics['found_in_log_quotes']}/{$statistics['total_items']} encontrados");
-        
-        return [
-            'groups' => $sellerGroups,
-            'seller_info' => $sellerInfo,
-            'statistics' => $statistics,
-            'total_sellers' => count($sellerGroups),
-            'total_items' => $statistics['total_items']
-        ];
-    }
-    
-} // FIM DA CLASSE CalculoFrete - LINHA 3253
-
-// === OUTRAS CLASSES EXISTENTES ===
+}
 
 class LogisticTypes
 {
