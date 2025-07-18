@@ -1631,7 +1631,11 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
                 foreach ($orderItems as $oi) {
                     $available = $oi['quantity'] - ($already[$oi['sku']] ?? 0);
                     if ($available > 0) {
-                        $invoiceItems[] = ['sku' => $oi['sku'], 'quantity' => $available, 'price' => $oi['price']];
+                        $invoiceItems[] = [
+                            'order_item_id' => $oi['id'],
+                            'qty_invoiced'  => $available,
+                            'price'         => $oi['price']
+                        ];
                         $invoiceValue += $oi['price'] * $available;
                     }
                 }
@@ -1656,7 +1660,11 @@ private function executeNewMultisellerQuote(array $items, string $zipcode): ?arr
                         continue;
                     }
 
-                    $invoiceItems[] = ['sku' => $item['sku'], 'quantity' => $qty, 'price' => $oi['price']];
+                    $invoiceItems[] = [
+                        'order_item_id' => $oi['id'],
+                        'qty_invoiced'  => $qty,
+                        'price'         => $oi['price']
+                    ];
                     $invoiceValue += $oi['price'] * $qty;
                 }
             }
